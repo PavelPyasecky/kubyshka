@@ -4,7 +4,7 @@ import { startSync } from '../sync/engine.ts';
 import { evaluateOnboarding, skipOnboarding } from './onboarding.ts';
 import { createStore } from './store.ts';
 
-export type Member = { id: string; name: string; color: string };
+export type Member = { id: string; name: string; color: string; deviceCount: number };
 
 export type SessionState =
   | { status: 'loading' }

@@ -8,7 +8,7 @@ import {
   totalBalance,
 } from '@kubyshka/shared';
 import { byId, useAccounts, useBudgets, useCategories, useFamily, useTransactions } from '../../data/hooks.ts';
-import { openSavings, tabStore } from '../../app/navigation.ts';
+import { openSavings, openTransaction, tabStore } from '../../app/navigation.ts';
 import { sessionStore } from '../../state/session.ts';
 import { TransactionRow } from '../transactions/TransactionRow.tsx';
 import { InsightList } from '../insights/InsightList.tsx';
@@ -115,6 +115,7 @@ export const HomeScreen = () => {
               categories={byId(categories)}
               accounts={byId(accounts)}
               members={members}
+              onSelect={() => openTransaction(transaction.id)}
             />
           ))}
         </div>

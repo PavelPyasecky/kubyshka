@@ -19,5 +19,7 @@ export const useBudgets = (): Budget[] =>
 export const useFamily = (): Family | undefined =>
   useLiveQuery(async () => (await local.families.toArray())[0], [], undefined);
 
+export const useOutboxCount = (): number => useLiveQuery(() => local.outbox.count(), [], 0);
+
 export const byId = <T extends { id: string }>(items: T[]): Map<string, T> =>
   new Map(items.map((item) => [item.id, item]));

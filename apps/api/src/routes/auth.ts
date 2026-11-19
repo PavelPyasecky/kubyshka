@@ -3,7 +3,7 @@ import { and, eq, gt, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import { defaultAccounts, defaultCategories } from '@kubyshka/shared';
 import { db } from '../db/client.ts';
-import { accounts, categories, families, invites, members } from '../db/schema.ts';
+import { accounts, categories, devices, families, invites, members } from '../db/schema.ts';
 import { env } from '../env.ts';
 import { hashPin, hashToken, newId, newInviteCode, verifyPin } from '../lib/crypto.ts';
 import { clearSession, issueDevice, readSession, requireSession } from '../lib/session.ts';
@@ -82,8 +82,19 @@ export const authRoutes = async (app: FastifyInstance): Promise<void> => {
       .select({ id: members.id, name: members.name, color: members.color })
       .from(members)
       .where(eq(members.familyId, familyId));
+    const deviceRows = await db
+      .select({ memberId: devices.memberId })
+      .from(devices)
+      .innerJoin(members, eq(members.id, devices.memberId))
+      .where(eq(members.familyId, familyId));
+    const deviceCount = new Map<string, number>();
+    for (const row of deviceRows) deviceCount.set(row.memberId, (deviceCount.get(row.memberId) ?? 0) + 1);
 
-    return { memberId, family, members: roster };
+    return {
+      memberId,
+      family,
+      members: roster.map((member) => ({ ...member, deviceCount: deviceCount.get(member.id) ?? 0 })),
+    };
   });
 
   app.post('/bootstrap', async (request, reply) => {

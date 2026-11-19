@@ -2,7 +2,7 @@ import { formatSigned } from '@kubyshka/shared';
 import type { Transaction } from '@kubyshka/shared';
 import { byId, useAccounts, useCategories, useTransactions } from '../../data/hooks.ts';
 import { sessionStore } from '../../state/session.ts';
-import { softDelete } from '../../db/repo.ts';
+import { openTransaction } from '../../app/navigation.ts';
 import { TransactionRow } from './TransactionRow.tsx';
 
 const dayFormatter = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long' });
@@ -70,9 +70,7 @@ export const TransactionsScreen = () => {
                 categories={categories}
                 accounts={accounts}
                 members={members}
-                onSelect={() => {
-                  if (confirm('Удалить операцию?')) void softDelete('transactions', transaction.id);
-                }}
+                onSelect={() => openTransaction(transaction.id)}
               />
             ))}
           </div>

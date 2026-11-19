@@ -1,10 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Keypad } from '../../ui/Keypad.tsx';
 import { unlock, verifyPin } from '../../state/lock.ts';
+import { hasBiometric, unlockWithBiometric } from '../../state/webauthn.ts';
 
 export const LockScreen = () => {
   const [pin, setPin] = useState('');
   const [wrong, setWrong] = useState(false);
+  const [biometric, setBiometric] = useState(false);
+  const [biometricError, setBiometricError] = useState('');
+
+  useEffect(() => {
+    void hasBiometric().then(setBiometric);
+  }, []);
+
+  const face = async () => {
+    setBiometricError('');
+    const result = await unlockWithBiometric();
+    if (result !== 'ok') setBiometricError('Не удалось подтвердить лицо. Введите PIN.');
+  };
 
   useEffect(() => {
     if (pin.length < 4) return;
@@ -41,8 +54,13 @@ export const LockScreen = () => {
         ))}
       </div>
       <p className="error" style={{ minHeight: 20 }}>
-        {wrong ? 'Неверный PIN' : ''}
+        {wrong ? 'Неверный PIN' : biometricError}
       </p>
+      {biometric && (
+        <button type="button" className="link" onClick={() => void face()}>
+          Войти по Face ID
+        </button>
+      )}
       <Keypad onKey={handle} />
     </div>
   );
