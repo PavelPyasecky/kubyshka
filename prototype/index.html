@@ -353,6 +353,43 @@ figcaption { font-size: 13px; color: #6C6C70; order: 2; }
 .bars u { display: block; border-radius: 2px; }
 .bars span { font-size: 9px; color: var(--label-3); text-align: center; }
 
+.center-stack { display: flex; flex-direction: column; justify-content: center; height: 100%; padding-bottom: 40px; }
+.lead { font-size: 15px; color: var(--label-2); line-height: 1.4; }
+.form { display: grid; gap: 10px; padding: 18px 0 8px; }
+.form input {
+  width: 100%; padding: 13px 14px; border-radius: 12px; border: none;
+  background: var(--surface); font: inherit; color: var(--label);
+}
+.primary {
+  width: 100%; padding: 14px; border-radius: 12px; border: none;
+  background: var(--accent); color: #fff; font-size: 17px; font-weight: 600; font-family: inherit;
+}
+.quiet { background: none; border: none; color: var(--accent); font-size: 15px; padding: 10px; font-family: inherit; }
+.field {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 11px 14px; border-top: 0.5px solid var(--separator);
+}
+.field:first-child { border-top: none; }
+.field .value { font-variant-numeric: tabular-nums; color: var(--label-2); }
+.field.block { display: block; }
+.code {
+  font-size: 44px; font-weight: 700; letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums; text-align: center; padding: 6px 0 2px;
+}
+.dots { display: flex; justify-content: center; gap: 15px; padding: 26px 0 10px; }
+.dots i { width: 13px; height: 13px; border-radius: 50%; background: var(--fill); }
+.dots i.on { background: var(--accent); }
+.mark {
+  width: 64px; height: 64px; border-radius: 16px; margin: 0 auto;
+  background: var(--accent); color: #F4F1EA;
+  display: grid; place-items: center; font-size: 36px; font-weight: 600;
+}
+.detail-amount { text-align: center; padding: 10px 0 2px; }
+.detail-amount .value { font-size: 44px; font-weight: 700; letter-spacing: -0.035em; font-variant-numeric: tabular-nums; }
+.detail-amount .what { font-size: 17px; color: var(--label-2); margin-top: 2px; }
+.actions { display: grid; gap: 8px; padding: 14px 0 0; }
+.danger { color: var(--expense); background: var(--surface); border: none; border-radius: 12px; padding: 14px; font: inherit; font-weight: 500; }
+
 .hero { padding: 0 2px 8px; }
 .month { display: grid; grid-template-columns: 1fr 1fr; }
 .month .half { min-width: 0; }
@@ -833,6 +870,189 @@ figcaption { font-size: 13px; color: #6C6C70; order: 2; }
       </nav>
     </div></div>
     <figcaption>Тёмная тема</figcaption>
+  </figure>
+
+
+  <!-- 7. Первый запуск -->
+  <figure>
+    <div class="device"><div class="screen">
+      <div class="status"><span>9:41</span><span>5G ▮</span></div>
+      <div class="body center-stack">
+        <div class="mark">К</div>
+        <h2 style="font-size:28px;font-weight:700;letter-spacing:-0.03em;text-align:center;margin-top:18px">Кубышка</h2>
+        <p class="lead" style="text-align:center;margin-top:6px">Общий бюджет на двоих, без почты и паролей</p>
+        <div class="form">
+          <input placeholder="Имя" value="Аня">
+          <input placeholder="PIN из четырёх цифр" value="••••">
+          <button class="primary">Создать</button>
+        </div>
+        <p class="lead" style="text-align:center">PIN нужен, чтобы открыть приложение на этом телефоне. Второго человека пригласите кодом позже.</p>
+      </div>
+    </div></div>
+    <figcaption>Первый запуск</figcaption>
+  </figure>
+
+  <!-- 8. Стартовые остатки -->
+  <figure>
+    <div class="device"><div class="screen">
+      <div class="status"><span>9:41</span><span>5G ▮</span></div>
+      <div class="body">
+        <div class="title-row"><h2>Сколько сейчас есть</h2></div>
+        <p class="lead">Остатки нужны, чтобы приложение показывало реальные деньги, а не только движение с сегодняшнего дня.</p>
+        <div class="card" style="padding:0;margin-top:16px">
+          <div class="field"><span>💵 Наличные</span><span class="value">8 000</span></div>
+          <div class="field"><span>💳 Карта</span><span class="value">92 000</span></div>
+          <div class="field"><span>🐷 Копилка</span><span class="value">212 000</span></div>
+        </div>
+        <div class="form"><button class="primary">Готово</button></div>
+        <div style="text-align:center"><button class="quiet">Заполню позже</button></div>
+      </div>
+    </div></div>
+    <figcaption>Стартовые остатки</figcaption>
+  </figure>
+
+  <!-- 9. Блокировка -->
+  <figure>
+    <div class="device"><div class="screen">
+      <div class="status"><span>9:41</span><span>5G ▮</span></div>
+      <div class="body" style="display:flex;flex-direction:column;justify-content:flex-end;padding-bottom:0">
+        <div class="mark" style="margin-bottom:14px">К</div>
+        <div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i></div>
+        <div style="text-align:center;margin-bottom:6px"><button class="quiet">Войти по Face ID</button></div>
+        <div class="keypad" style="padding:10px 0 26px">
+          <button>1</button><button>2</button><button>3</button>
+          <button>4</button><button>5</button><button>6</button>
+          <button>7</button><button>8</button><button>9</button>
+          <button></button><button>0</button><button>⌫</button>
+        </div>
+      </div>
+    </div></div>
+    <figcaption>Блокировка</figcaption>
+  </figure>
+
+  <!-- 10. Приглашение -->
+  <figure>
+    <div class="device"><div class="screen">
+      <div class="status"><span>9:41</span><span>5G ▮</span></div>
+      <div class="body">
+        <div class="nav-back">‹ Ещё</div>
+        <div class="title-row"><h2>Приглашение</h2></div>
+        <div class="card" style="text-align:center;padding:20px 14px">
+          <div class="code">472 915</div>
+          <span class="caption">действует ещё 23 часа</span>
+        </div>
+        <p class="lead">Откройте Кубышку на втором телефоне, выберите «У меня есть код приглашения» и введите эти шесть цифр.</p>
+        <div class="form"><button class="primary">Поделиться</button></div>
+        <p class="lead">После использования код сгорает. Новый можно выпустить в любой момент.</p>
+      </div>
+    </div></div>
+    <figcaption>Приглашение</figcaption>
+  </figure>
+
+  <!-- 11. Лимиты -->
+  <figure>
+    <div class="device"><div class="screen">
+      <div class="status"><span>9:41</span><span>5G ▮</span></div>
+      <div class="body">
+        <div class="nav-back">‹ Ещё</div>
+        <div class="title-row"><h2>Лимиты</h2></div>
+        <p class="lead">Потолок на ноябрь. Пустое поле — без ограничения.</p>
+        <div class="card" style="padding:0;margin-top:14px">
+          <div class="field block">
+            <div class="row-between"><span>🛒 Продукты</span><span class="value">20 000</span></div>
+            <div class="track"><b style="width:62%;background:var(--label-2)"></b><u style="left:63%"></u></div>
+            <span class="caption">12 400 из 20 000 ₽</span>
+          </div>
+          <div class="field block">
+            <div class="row-between"><span>☕️ Кафе</span><span class="value">9 000</span></div>
+            <div class="track"><b style="width:99%;background:var(--expense)"></b><u style="left:63%"></u></div>
+            <span class="caption">8 900 из 9 000 ₽</span>
+          </div>
+          <div class="field block">
+            <div class="row-between"><span>🚕 Транспорт</span><span class="value">8 000</span></div>
+            <div class="track"><b style="width:76%;background:var(--warn)"></b><u style="left:63%"></u></div>
+            <span class="caption">6 100 из 8 000 ₽</span>
+          </div>
+          <div class="field"><span>🏠 Дом</span><span class="value" style="color:var(--label-3)">без лимита</span></div>
+          <div class="field"><span>💊 Аптека</span><span class="value" style="color:var(--label-3)">без лимита</span></div>
+        </div>
+      </div>
+    </div></div>
+    <figcaption>Лимиты</figcaption>
+  </figure>
+
+  <!-- 12. Карточка операции -->
+  <figure>
+    <div class="device"><div class="screen">
+      <div class="status"><span>9:41</span><span>5G ▮</span></div>
+      <div class="body" style="opacity:.35">
+        <div class="title-row"><h2>Операции</h2></div>
+        <div class="list"><div class="op"><div class="ic" style="background:#15724C1A">🛒</div><div class="txt"><b>Продукты</b><span>Тинькофф, Аня</span></div><div class="sum">−2 480 ₽</div></div></div>
+      </div>
+      <div class="sheet" style="inset:200px 0 0">
+        <div class="grabber"></div>
+        <div class="detail-amount">
+          <div class="value">−2 480 ₽</div>
+          <div class="what">🛒 Продукты</div>
+        </div>
+        <div style="padding:16px">
+          <div class="card" style="padding:0">
+            <div class="field"><span>Счёт</span><span class="value">Тинькофф</span></div>
+            <div class="field"><span>Когда</span><span class="value">19 ноября, 18:40</span></div>
+            <div class="field"><span>Кто внёс</span><span class="value">Аня</span></div>
+            <div class="field"><span>Заметка</span><span class="value">Пятёрочка</span></div>
+          </div>
+          <div class="actions">
+            <button class="primary">Изменить</button>
+            <button class="danger">Удалить</button>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <figcaption>Карточка операции</figcaption>
+  </figure>
+
+  <!-- 13. Ещё -->
+  <figure>
+    <div class="device"><div class="screen">
+      <div class="status"><span>9:41</span><span>5G ▮</span></div>
+      <div class="body">
+        <div class="title-row"><h2>Ещё</h2></div>
+
+        <div class="card" style="padding:0">
+          <div class="field"><span>Норма накопления</span><span class="value">40 000 ₽</span></div>
+          <div class="field"><span>Ожидаемый доход</span><span class="value">142 000 ₽</span></div>
+          <div class="field"><span>Лимиты по категориям</span><span class="value">3 из 20 ›</span></div>
+          <div class="field"><span>Категории</span><span class="value">›</span></div>
+        </div>
+
+        <div class="section-head"><h3>Счета</h3><a href="#">Править</a></div>
+        <div class="list">
+          <div class="op"><div class="ic" style="background:#15724C1A">💵</div><div class="txt"><b>Наличные</b><span>общий</span></div><div class="sum">8 000 ₽</div></div>
+          <div class="op"><div class="ic" style="background:#3478F61A">💳</div><div class="txt"><b>Карта</b><span>общий</span></div><div class="sum">92 000 ₽</div></div>
+          <div class="op"><div class="ic" style="background:#B074001A">🐷</div><div class="txt"><b>Копилка</b><span>накопительный</span></div><div class="sum">212 000 ₽</div></div>
+        </div>
+
+        <div class="section-head"><h3>Семья</h3></div>
+        <div class="list">
+          <div class="op"><div class="ic" style="background:#15724C;color:#fff">А</div><div class="txt"><b>Аня</b><span>два устройства</span></div></div>
+          <div class="op"><div class="ic" style="background:#7D5BA6;color:#fff">М</div><div class="txt"><b>Миша</b><span>одно устройство</span></div></div>
+          <div class="op"><div class="ic" style="background:var(--fill);color:var(--accent)">+</div><div class="txt"><b style="color:var(--accent)">Пригласить</b></div></div>
+        </div>
+
+        <div class="card" style="margin-top:10px">
+          <div class="row-between"><span class="caption">Синхронизировано</span><span class="caption">минуту назад</span></div>
+        </div>
+      </div>
+      <nav class="tabbar">
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-6 8 6v8a1 1 0 01-1 1h-4v-6h-6v6H5a1 1 0 01-1-1z"/></svg>Главная</div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h10"/></svg>Операции</div>
+        <div><div class="fab">+</div></div>
+        <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 19V9M12 19V5M19 19v-7"/></svg>Аналитика</div>
+        <div class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="1.3"/><circle cx="5" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg>Ещё</div>
+      </nav>
+    </div></div>
+    <figcaption>Ещё</figcaption>
   </figure>
 
 </main>

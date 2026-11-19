@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import type { Account, Category, Family, Transaction } from '@kubyshka/shared';
+import type { Account, Budget, Category, Family, Transaction } from '@kubyshka/shared';
 import { local } from '../db/local.ts';
 
 const alive = <T extends { deleted: boolean }>(items: T[]): T[] => items.filter((item) => !item.deleted);
@@ -12,6 +12,9 @@ export const useCategories = (): Category[] =>
 
 export const useTransactions = (): Transaction[] =>
   useLiveQuery(async () => alive(await local.transactions.toArray()).sort((a, b) => b.occurredAt - a.occurredAt), [], []);
+
+export const useBudgets = (): Budget[] =>
+  useLiveQuery(async () => alive(await local.budgets.toArray()), [], []);
 
 export const useFamily = (): Family | undefined =>
   useLiveQuery(async () => (await local.families.toArray())[0], [], undefined);

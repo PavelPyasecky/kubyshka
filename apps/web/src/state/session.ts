@@ -1,6 +1,7 @@
 import type { Family } from '@kubyshka/shared';
 import { ApiError, api } from '../api/client.ts';
 import { startSync } from '../sync/engine.ts';
+import { evaluateOnboarding, skipOnboarding } from './onboarding.ts';
 import { createStore } from './store.ts';
 
 export type Member = { id: string; name: string; color: string };
@@ -39,16 +40,19 @@ type Credentials = { name: string; pin: string; device: string };
 
 export const bootstrapFamily = async (input: Credentials & { setupCode: string }): Promise<void> => {
   await api('/auth/bootstrap', input);
+  await evaluateOnboarding();
   await refreshSession();
 };
 
 export const joinFamily = async (input: Credentials & { code: string }): Promise<void> => {
   await api('/auth/join', input);
+  await skipOnboarding();
   await refreshSession();
 };
 
 export const restoreAccess = async (input: Credentials): Promise<void> => {
   await api('/auth/restore', input);
+  await skipOnboarding();
   await refreshSession();
 };
 

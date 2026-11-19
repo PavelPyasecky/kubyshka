@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { buildSuggestionIndex, parseAmount, suggestCategories } from '@kubyshka/shared';
 import type { Transaction } from '@kubyshka/shared';
-import { Keypad, appendDigit } from '../../ui/Keypad.tsx';
+import { Keypad, appendDigit, formatRaw } from '../../ui/Keypad.tsx';
 import { byId, useAccounts, useCategories, useTransactions } from '../../data/hooks.ts';
 import { persist } from '../../db/repo.ts';
 import { now } from '../../sync/clock.ts';
@@ -58,7 +58,7 @@ export const EntrySheet = ({ onSaved }: { onSaved: (message: string) => void }) 
 
     tap();
     const label = categoryId ? (categoriesById.get(categoryId)?.name ?? 'Операция') : 'Перевод';
-    onSaved(`${label}, ${raw || '0'} ₽`);
+    onSaved(`${label}, ${formatRaw(raw)} ₽`);
     closeOverlay();
   };
 
@@ -88,7 +88,7 @@ export const EntrySheet = ({ onSaved }: { onSaved: (message: string) => void }) 
 
         <div className="entry-amount">
           <div className="value">
-            {raw || '0'}
+            {formatRaw(raw)}
             <i> ₽</i>
           </div>
           <button type="button" className="meta" onClick={() => setPicking(picking === 'account' ? 'none' : 'account')}>
@@ -143,7 +143,7 @@ export const EntrySheet = ({ onSaved }: { onSaved: (message: string) => void }) 
           </div>
         )}
 
-        {picking === 'none' && <Keypad onKey={(key) => setRaw(appendDigit(raw, key))} />}
+        {picking === 'none' && <Keypad onKey={(key) => setRaw((current) => appendDigit(current, key))} />}
       </div>
     </>
   );

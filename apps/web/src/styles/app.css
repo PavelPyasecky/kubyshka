@@ -573,3 +573,52 @@
   font-weight: 600;
   letter-spacing: -0.02em;
 }
+
+.insights {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.insight {
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  padding: 11px 14px;
+  border-left: 3px solid var(--warn);
+}
+
+.insight.info {
+  border-left-color: var(--accent);
+}
+
+.insight h3 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  padding-right: 28px;
+}
+
+.insight p {
+  font-size: 14px;
+  color: var(--label-2);
+  margin-top: 4px;
+}
+
+.insight button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 40px;
+  height: 40px;
+  background: none;
+  border: none;
+  color: var(--label-3);
+  font-size: 19px;
+}
+
+.onboarding {
+  display: grid;
+  gap: 10px;
+}

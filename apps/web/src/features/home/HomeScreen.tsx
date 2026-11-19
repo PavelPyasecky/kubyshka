@@ -1,15 +1,17 @@
 import {
+  buildInsights,
+  daysInMonth,
   formatMoney,
   monthKeyOf,
   monthName,
   savingsSnapshot,
-  spentByCategory,
   totalBalance,
 } from '@kubyshka/shared';
-import { byId, useAccounts, useCategories, useFamily, useTransactions } from '../../data/hooks.ts';
+import { byId, useAccounts, useBudgets, useCategories, useFamily, useTransactions } from '../../data/hooks.ts';
 import { openSavings, tabStore } from '../../app/navigation.ts';
 import { sessionStore } from '../../state/session.ts';
 import { TransactionRow } from '../transactions/TransactionRow.tsx';
+import { InsightList } from '../insights/InsightList.tsx';
 
 const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -17,19 +19,26 @@ export const HomeScreen = () => {
   const accounts = useAccounts();
   const categories = useCategories();
   const transactions = useTransactions();
+  const budgets = useBudgets();
   const family = useFamily();
   const state = sessionStore.use();
 
   const month = monthKeyOf(new Date());
+  const now = new Date();
+
   const snapshot = savingsSnapshot({
     entries: transactions,
     month,
-    now: new Date(),
+    now,
     expectedIncome: family?.expectedIncome ?? 0,
     norm: family?.savingsNorm ?? 0,
   });
 
-  const limits = [...spentByCategory(transactions, month).values()].reduce((sum, value) => sum + value, 0);
+  const limit = budgets
+    .filter((budget) => budget.periodMonth === month)
+    .reduce((sum, budget) => sum + budget.amount, 0);
+
+  const insights = buildInsights({ transactions, categories, budgets, savings: snapshot, month, now });
   const members = state.status === 'ready' ? state.members : [];
   const recent = transactions.slice(0, 3);
   const onTrack = snapshot.normProgress >= 1;
@@ -56,15 +65,18 @@ export const HomeScreen = () => {
         <button type="button" onClick={() => tabStore.set('analytics')}>
           <span className="caption">Потрачено</span>
           <div className="amount-m">{formatMoney(snapshot.expense)}</div>
-          <div className="track">
-            <b style={{ width: `${Math.min(100, (snapshot.expense / Math.max(1, limits || snapshot.expense)) * 100)}%`, background: 'var(--label-2)' }} />
-          </div>
-          <span className="caption">за {monthName(month)}</span>
+          {limit > 0 && (
+            <div className="track">
+              <b style={{ width: `${Math.min(100, (snapshot.expense / limit) * 100)}%`, background: 'var(--label-2)' }} />
+              <u style={{ left: `${(now.getDate() / daysInMonth(month)) * 100}%` }} />
+            </div>
+          )}
+          <span className="caption">{limit > 0 ? `из ${formatMoney(limit)}` : `за ${monthName(month)}`}</span>
         </button>
 
         <button type="button" onClick={openSavings}>
-          <span className="caption">Отложено</span>
-          <div className="amount-m">{formatMoney(snapshot.saved)}</div>
+          <span className="caption">Отложится</span>
+          <div className="amount-m">≈ {formatMoney(snapshot.forecastSaved)}</div>
           <div className="track">
             <b
               style={{
@@ -77,9 +89,11 @@ export const HomeScreen = () => {
         </button>
 
         <p className="forecast">
-          К концу месяца при таком темпе отложится <b>{formatMoney(snapshot.forecastSaved)}</b>
+          Сейчас отложено <b>{formatMoney(snapshot.saved)}</b>
         </p>
       </div>
+
+      <InsightList insights={insights} month={month} />
 
       <div className="section-head">
         <h2>Последние</h2>

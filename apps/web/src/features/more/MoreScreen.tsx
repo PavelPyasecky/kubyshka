@@ -5,6 +5,7 @@ import { persist } from '../../db/repo.ts';
 import { createInvite, sessionStore } from '../../state/session.ts';
 import { api } from '../../api/client.ts';
 import { resetLocalData, sync, syncState } from '../../sync/engine.ts';
+import { openLimits } from '../../app/navigation.ts';
 
 const MoneyField = ({ label, value, onChange }: { label: string; value: number; onChange: (next: number) => void }) => {
   const [draft, setDraft] = useState(String(toMajor(value)));
@@ -50,6 +51,13 @@ export const MoreScreen = () => {
           value={family?.expectedIncome ?? 0}
           onChange={(expectedIncome) => saveFamily({ expectedIncome })}
         />
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
+        <button type="button" className="field" style={{ width: '100%', background: 'none', border: 'none' }} onClick={openLimits}>
+          <span>Лимиты по категориям</span>
+          <span className="caption">›</span>
+        </button>
       </div>
 
       <div className="section-head">

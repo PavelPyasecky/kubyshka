@@ -12,6 +12,12 @@ export const appendDigit = (raw: string, key: string): string => {
   return whole === '0' ? key : whole + key;
 };
 
+export const formatRaw = (raw: string): string => {
+  const [whole, fraction] = (raw || '0').split(',');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, '\u2009');
+  return fraction === undefined ? grouped : `${grouped},${fraction}`;
+};
+
 export const Keypad = ({ onKey }: { onKey: (key: string) => void }) => (
   <div className="keypad">
     {KEYS.map((key) => (

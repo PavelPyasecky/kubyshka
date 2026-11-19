@@ -33,7 +33,8 @@ export const savingsSnapshot = (input: {
   const expense = sumFlow(entries, month, 'expense');
 
   const elapsed = Math.max(1, elapsedDays(month, now));
-  const forecastExpense = Math.round((expense / elapsed) * daysInMonth(month));
+  // Прогноз округляется до рублей: копейки в оценке создают ложную точность.
+  const forecastExpense = Math.round((expense / elapsed) * daysInMonth(month) / 100) * 100;
   const forecastIncome = Math.max(income, expectedIncome);
   const forecastSaved = forecastIncome - forecastExpense;
 

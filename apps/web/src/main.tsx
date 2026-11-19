@@ -6,10 +6,12 @@ import { App } from './app/App.tsx';
 import { loadClock } from './sync/clock.ts';
 import { refreshSession } from './state/session.ts';
 import { evaluateLock } from './state/lock.ts';
+import { evaluateOnboarding } from './state/onboarding.ts';
 
 const start = async (): Promise<void> => {
   await loadClock();
   await evaluateLock();
+  await evaluateOnboarding();
   await refreshSession();
 };
 

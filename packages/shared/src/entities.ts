@@ -83,10 +83,6 @@ export const syncTables = {
   budgets: budgetSchema,
 } as const;
 
-export type SyncTable = keyof typeof syncTables;
-
-export const syncTableNames = Object.keys(syncTables) as SyncTable[];
-
 const incoming = <T extends z.ZodObject<{ seq: z.ZodType }>>(schema: T) =>
   z.array(schema.omit({ seq: true })).default([]);
 
@@ -100,10 +96,3 @@ export const syncRequestSchema = z.object({
     budgets: incoming(budgetSchema),
   }),
 });
-
-export type SyncChanges = { [K in SyncTable]: z.infer<(typeof syncTables)[K]>[] };
-export type SyncRequest = { cursor: number; changes: SyncChanges };
-export type SyncResponse = { cursor: number; serverTime: number; changes: SyncChanges };
-
-export const emptyChanges = (): SyncChanges =>
-  Object.fromEntries(syncTableNames.map((table) => [table, []])) as unknown as SyncChanges;
