@@ -23,3 +23,19 @@ export const parseAmount = (input: string): Money => {
   const value = Number.parseFloat(normalized);
   return Number.isFinite(value) ? toMinor(value) : 0;
 };
+
+export const minorToRaw = (minor: Money): string => {
+  const abs = Math.abs(minor);
+  const whole = Math.trunc(abs / 100);
+  const fraction = abs % 100;
+  const body = fraction === 0 ? String(whole) : `${whole},${String(fraction).padStart(2, '0')}`;
+  return minor < 0 ? `-${body}` : body;
+};
+
+export const sharePercent = (part: Money, whole: Money): number => {
+  if (part <= 0 || whole <= 0) return 0;
+  const percent = Number((BigInt(part) * 100n) / BigInt(whole));
+  return percent > 100 ? 100 : percent;
+};
+
+export const roundToRubles = (minor: Money): Money => Number(BigInt(minor) / 100n) * 100;

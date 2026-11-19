@@ -7,3 +7,5 @@ export * from './savings.ts';
 export * from './insights.ts';
 export * from './suggest.ts';
 export * from './seed.ts';
+export * from './merge.ts';
+export * from './retry.ts';

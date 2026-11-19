@@ -1,4 +1,4 @@
-import type { Transaction } from './entities.ts';
+import type { Category, Transaction } from './entities.ts';
 
 const HISTORY_SIZE = 500;
 const RECENT_WINDOW_DAYS = 90;
@@ -95,4 +95,22 @@ export const suggestCategories = (
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((item) => item.categoryId);
+};
+
+export const offeredCategories = (
+  suggested: string[],
+  categories: Pick<Category, 'id' | 'flow' | 'archived' | 'deleted'>[],
+  flow: 'expense' | 'income',
+  limit = 5,
+): string[] => {
+  const active = categories.filter((category) => !category.deleted && !category.archived && category.flow === flow);
+  const activeIds = new Set(active.map((category) => category.id));
+  const picked = suggested.filter((id) => activeIds.has(id));
+
+  for (const category of active) {
+    if (picked.length >= limit) break;
+    if (!picked.includes(category.id)) picked.push(category.id);
+  }
+
+  return picked.slice(0, limit);
 };
