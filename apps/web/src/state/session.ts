@@ -1,5 +1,6 @@
 import type { Family } from '@kubyshka/shared';
 import { ApiError, api } from '../api/client.ts';
+import { startSync } from '../sync/engine.ts';
 import { createStore } from './store.ts';
 
 export type Member = { id: string; name: string; color: string };
@@ -20,6 +21,8 @@ const adopt = (me: Me): void => {
   session.memberId = me.memberId;
   session.familyId = me.family.id;
   sessionStore.set({ status: 'ready', ...me });
+  void navigator.storage?.persist?.();
+  startSync();
 };
 
 export const refreshSession = async (): Promise<void> => {

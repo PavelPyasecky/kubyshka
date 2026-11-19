@@ -119,8 +119,12 @@ export const requestSync = (): void => {
   timer = setTimeout(() => void sync(), DEBOUNCE_MS);
 };
 
+let started = false;
+
 export const startSync = (): void => {
   void sync();
+  if (started) return;
+  started = true;
   window.addEventListener('online', () => void sync());
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') void sync();

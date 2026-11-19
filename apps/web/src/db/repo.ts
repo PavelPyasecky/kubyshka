@@ -1,15 +1,27 @@
-import type { SyncTable, Syncable } from '@kubyshka/shared';
+import type { Account, Budget, Category, Family, SyncTable, Syncable, Transaction } from '@kubyshka/shared';
 import { local } from './local.ts';
 import { now } from '../sync/clock.ts';
 import { session } from '../state/session.ts';
 import { requestSync } from '../sync/engine.ts';
 
-type Draft<T> = Omit<T, keyof Syncable> & Partial<Pick<Syncable, 'id'>>;
+type EntityOf = {
+  families: Family;
+  accounts: Account;
+  categories: Category;
+  transactions: Transaction;
+  budgets: Budget;
+};
 
-const tableOf = (table: SyncTable) => local[table] as unknown as { put: (value: unknown) => Promise<unknown> };
+type Draft<T> = Omit<T, keyof Syncable> & Partial<Syncable>;
 
-export const persist = async <T extends Syncable>(table: SyncTable, draft: Draft<T> | T): Promise<string> => {
-  const id = 'id' in draft && draft.id ? draft.id : crypto.randomUUID();
+const tableOf = (table: SyncTable) =>
+  local[table] as unknown as {
+    get: (id: string) => Promise<Syncable | undefined>;
+    put: (value: unknown) => Promise<unknown>;
+  };
+
+export const persist = async <K extends SyncTable>(table: K, draft: Draft<EntityOf[K]>): Promise<string> => {
+  const id = draft.id ?? crypto.randomUUID();
 
   const entity = {
     ...draft,
@@ -17,8 +29,8 @@ export const persist = async <T extends Syncable>(table: SyncTable, draft: Draft
     familyId: session.familyId,
     updatedAt: now(),
     updatedBy: session.memberId,
-    deleted: 'deleted' in draft ? draft.deleted : false,
-    seq: 0,
+    deleted: draft.deleted ?? false,
+    seq: draft.seq ?? 0,
   };
 
   await local.transaction('rw', local[table], local.outbox, async () => {
@@ -26,12 +38,11 @@ export const persist = async <T extends Syncable>(table: SyncTable, draft: Draft
     await local.outbox.put({ key: `${table}:${id}`, table, id });
   });
 
-  void requestSync();
+  requestSync();
   return id;
 };
 
 export const softDelete = async (table: SyncTable, id: string): Promise<void> => {
-  const existing = await (local[table] as unknown as { get: (id: string) => Promise<Syncable | undefined> }).get(id);
-  if (!existing) return;
-  await persist(table, { ...existing, deleted: true });
+  const existing = await tableOf(table).get(id);
+  if (existing) await persist(table, { ...existing, deleted: true } as Draft<EntityOf[SyncTable]>);
 };
