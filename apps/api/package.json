@@ -1,0 +1,24 @@
+{
+  "name": "@kubyshka/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --experimental-strip-types --watch src/index.ts",
+    "start": "node --experimental-strip-types src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "migrate": "node --experimental-strip-types src/db/migrate.ts"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.0.2",
+    "@kubyshka/shared": "*",
+    "drizzle-orm": "^0.45.4",
+    "fastify": "^5.2.1",
+    "postgres": "^3.4.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}
