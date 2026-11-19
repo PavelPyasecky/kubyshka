@@ -1,33 +1,20 @@
-import { emptyChanges, syncTableNames } from '@kubyshka/shared';
+import { emptyChanges, shouldApplyRemote, syncRetryDelay, syncTableNames } from '@kubyshka/shared';
 import type { SyncChanges, SyncResponse, SyncTable, Syncable } from '@kubyshka/shared';
 import { api } from '../api/client.ts';
 import { local, readMeta, writeMeta } from '../db/local.ts';
+import { createStore } from '../state/store.ts';
 import { syncClock } from './clock.ts';
 
 const CURSOR_KEY = 'syncCursor';
 const DEBOUNCE_MS = 2000;
 
-type Status = 'idle' | 'running' | 'offline';
+export const syncStore = createStore({ offline: false, lastSyncedAt: 0 });
 
-let timer: ReturnType<typeof setTimeout> | undefined;
+let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+let retryTimer: ReturnType<typeof setTimeout> | undefined;
+let retryAttempt = 0;
 let running = false;
 let pending = false;
-let status: Status = 'idle';
-let lastSyncedAt = 0;
-const listeners = new Set<() => void>();
-
-export const syncState = {
-  subscribe: (listener: () => void) => {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
-  },
-  snapshot: () => ({ status, lastSyncedAt }),
-};
-
-const announce = (next: Status) => {
-  status = next;
-  for (const listener of listeners) listener();
-};
 
 const tableOf = (table: SyncTable) =>
   local[table] as unknown as {
@@ -54,12 +41,11 @@ const applyIncoming = async (changes: SyncChanges, pendingKeys: Set<string>): Pr
 
     const accepted: Syncable[] = [];
     for (const row of rows) {
-      if (!pendingKeys.has(`${table}:${row.id}`)) {
+      const key = `${table}:${row.id}`;
+      const localRow = pendingKeys.has(key) ? await tableOf(table).get(row.id) : undefined;
+      if (shouldApplyRemote({ pending: pendingKeys.has(key), localUpdatedAt: localRow?.updatedAt, remoteUpdatedAt: row.updatedAt })) {
         accepted.push(row);
-        continue;
       }
-      const localRow = await tableOf(table).get(row.id);
-      if (!localRow || row.updatedAt >= localRow.updatedAt) accepted.push(row);
     }
 
     if (accepted.length > 0) await tableOf(table).bulkPut(accepted);
@@ -67,44 +53,67 @@ const applyIncoming = async (changes: SyncChanges, pendingKeys: Set<string>): Pr
 };
 
 const settleOutbox = async (keys: string[], changes: SyncChanges): Promise<void> => {
-  const confirmed = new Set<string>();
-
+  const remoteByKey = new Map<string, Syncable>();
   for (const table of syncTableNames) {
-    for (const row of changes[table] as Syncable[]) confirmed.add(`${table}:${row.id}`);
+    for (const row of changes[table] as Syncable[]) remoteByKey.set(`${table}:${row.id}`, row);
   }
 
-  const settled = keys.filter((key) => confirmed.has(key));
+  const settled: string[] = [];
+  for (const key of keys) {
+    const remote = remoteByKey.get(key);
+    if (!remote) continue;
+    const separator = key.indexOf(':');
+    const table = key.slice(0, separator) as SyncTable;
+    const id = key.slice(separator + 1);
+    const localRow = await tableOf(table).get(id);
+    if (shouldApplyRemote({ pending: true, localUpdatedAt: localRow?.updatedAt, remoteUpdatedAt: remote.updatedAt })) {
+      settled.push(key);
+    }
+  }
+
   if (settled.length > 0) await local.outbox.bulkDelete(settled);
 };
 
 const runOnce = async (): Promise<void> => {
   const cursor = await readMeta(CURSOR_KEY, 0);
   const { changes: outgoing, keys } = await collectOutgoing();
-
   const response = await api<SyncResponse>('/sync', { cursor, changes: outgoing });
 
   await syncClock(response.serverTime);
   await applyIncoming(response.changes, new Set(keys));
   await settleOutbox(keys, response.changes);
   await writeMeta(CURSOR_KEY, response.cursor);
+};
 
-  lastSyncedAt = Date.now();
+const clearRetry = (): void => {
+  clearTimeout(retryTimer);
+  retryTimer = undefined;
+};
+
+const armRetry = (): void => {
+  if (document.visibilityState === 'hidden') return;
+  const delay = syncRetryDelay(retryAttempt);
+  retryAttempt += 1;
+  clearTimeout(retryTimer);
+  retryTimer = setTimeout(() => void sync(), delay);
 };
 
 export const sync = async (): Promise<void> => {
+  clearRetry();
   if (running) {
     pending = true;
     return;
   }
 
   running = true;
-  announce('running');
 
   try {
     await runOnce();
-    announce('idle');
+    retryAttempt = 0;
+    syncStore.set({ offline: false, lastSyncedAt: Date.now() });
   } catch {
-    announce('offline');
+    syncStore.set({ ...syncStore.get(), offline: true });
+    armRetry();
   } finally {
     running = false;
     if (pending) {
@@ -115,8 +124,8 @@ export const sync = async (): Promise<void> => {
 };
 
 export const requestSync = (): void => {
-  clearTimeout(timer);
-  timer = setTimeout(() => void sync(), DEBOUNCE_MS);
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => void sync(), DEBOUNCE_MS);
 };
 
 let started = false;
@@ -125,9 +134,15 @@ export const startSync = (): void => {
   void sync();
   if (started) return;
   started = true;
+
   window.addEventListener('online', () => void sync());
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void sync();
+    if (document.visibilityState === 'hidden') {
+      clearRetry();
+      retryAttempt = 0;
+      return;
+    }
+    void sync();
   });
 };
 

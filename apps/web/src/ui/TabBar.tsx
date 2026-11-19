@@ -28,7 +28,7 @@ export const TabBar = ({ active }: { active: Tab }) => (
   <nav className="tabbar">
     <TabButton tab="home" active={active === 'home'} />
     <TabButton tab="transactions" active={active === 'transactions'} />
-    <button type="button" onClick={openEntry} aria-label="Новая операция">
+    <button type="button" onClick={() => openEntry()} aria-label="Новая операция">
       <span className="fab">+</span>
     </button>
     <TabButton tab="analytics" active={active === 'analytics'} />

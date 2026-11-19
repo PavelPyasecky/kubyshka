@@ -3,7 +3,8 @@ import { formatMoney, monthKeyOf, monthName, parseAmount, spentByCategory, toMaj
 import type { Budget, Category } from '@kubyshka/shared';
 import { useBudgets, useCategories, useTransactions } from '../../data/hooks.ts';
 import { persist } from '../../db/repo.ts';
-import { closeOverlay } from '../../app/navigation.ts';
+import { closeOverlay, openCategories } from '../../app/navigation.ts';
+import { EmptyState } from '../../ui/EmptyState.tsx';
 
 type RowProps = {
   category: Category;
@@ -59,15 +60,36 @@ const LimitRow = ({ category, budget, spent, month }: RowProps) => {
 };
 
 export const LimitsScreen = () => {
-  const categories = useCategories().filter((category) => category.flow === 'expense');
+  const categories = useCategories().filter((category) => category.flow === 'expense' && !category.archived);
   const budgets = useBudgets();
   const transactions = useTransactions();
 
   const month = monthKeyOf(new Date());
   const spent = spentByCategory(transactions, month);
 
+  if (categories.length === 0) {
+    return (
+      <div className="screen overlay">
+        <div className="scroll">
+          <button type="button" className="nav-back" onClick={closeOverlay}>
+            ‹ Ещё
+          </button>
+          <div className="title-row">
+            <h1>Лимиты</h1>
+          </div>
+          <EmptyState
+            title="Сначала нужна категория"
+            text="Добавьте категорию расхода, и для неё можно задать месячный потолок."
+            action="К категориям"
+            onAction={openCategories}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="screen" style={{ position: 'fixed', inset: 0, background: 'var(--bg)', zIndex: 8 }}>
+    <div className="screen overlay">
       <div className="scroll">
         <button type="button" className="nav-back" onClick={closeOverlay}>
           ‹ Ещё

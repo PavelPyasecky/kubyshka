@@ -31,6 +31,28 @@
   animation: rise 0.22s ease;
 }
 
+.sheet.raised,
+.backdrop.raised {
+  z-index: 12;
+}
+
+.backdrop.raised {
+  z-index: 11;
+}
+
+.sheet.compact {
+  inset: auto 0 0;
+  max-height: 92%;
+}
+
+.sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
 @keyframes rise {
   from {
     transform: translateY(100%);
@@ -62,6 +84,7 @@
 .segmented button {
   text-align: center;
   padding: 7px 0;
+  min-height: 44px;
   border: none;
   border-radius: 7px;
   background: none;
@@ -95,18 +118,68 @@
   color: var(--label-3);
 }
 
+.entry-tools {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .entry-amount .meta {
-  justify-self: center;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 10px;
+  min-height: 44px;
   padding: 7px 12px;
   border-radius: 999px;
   border: none;
   background: var(--fill);
   font-size: 14px;
   color: var(--label-2);
+}
+
+.meta-more {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--fill);
+  color: var(--label-2);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.meta-more[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.extras {
+  display: grid;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+
+.extras .segmented {
+  margin: 0;
+}
+
+.extras input {
+  width: 100%;
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: var(--fill);
+  padding: 0 14px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.pad-inline,
+.sheet-pad {
+  padding: 0 16px 8px;
 }
 
 .chips {
@@ -148,6 +221,11 @@
   border: 1px solid var(--separator);
   color: var(--label-2);
   justify-content: center;
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 .chip span {

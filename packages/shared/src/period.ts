@@ -41,9 +41,16 @@ const MONTH_GENITIVE = [
   'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
 ];
 
+const MONTH_PREPOSITIONAL = [
+  'январе', 'феврале', 'марте', 'апреле', 'мае', 'июне',
+  'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре',
+];
+
 export const monthName = (key: MonthKey): string => MONTH_NAMES[monthStart(key).getMonth()];
 
 export const formatDay = (key: MonthKey, day: number): string =>
   `${day} ${MONTH_GENITIVE[monthStart(key).getMonth()]}`;
 
 export const monthNameShort = (key: MonthKey): string => MONTH_NAMES_SHORT[monthStart(key).getMonth()];
+
+export const monthNameIn = (key: MonthKey): string => MONTH_PREPOSITIONAL[monthStart(key).getMonth()];

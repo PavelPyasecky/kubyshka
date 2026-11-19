@@ -30,6 +30,7 @@ else await call('/api/auth/restore', { name: 'Аня', pin: '1234', device: 'smo
 
 const me = await call('/api/auth/me');
 check('семья и участник существуют', Boolean(me.family?.id) && Boolean(me.memberId));
+check('у участника есть устройство', me.members.some((member) => member.id === me.memberId && member.deviceCount >= 1));
 
 const first = await call('/api/sync', { cursor: 0, changes: {} });
 check('предустановленные категории пришли', first.changes.categories.length >= 20);
@@ -64,7 +65,7 @@ const stale = await call('/api/sync', {
   cursor: pushed.cursor,
   changes: { transactions: [{ ...transaction, updatedAt: now - 1000, note: 'устаревшая правка' }] },
 });
-check('устаревшая правка отклонена', stale.changes.transactions.length === 0);
+check('устаревшая правка не затирает запись', stale.changes.transactions[0]?.note === 'проверка');
 
 const fresh = await call('/api/sync', {
   cursor: pushed.cursor,

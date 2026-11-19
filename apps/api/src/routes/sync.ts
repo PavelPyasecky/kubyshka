@@ -29,7 +29,10 @@ const push = async (tx: TransactionSql, table: SyncTable, familyId: string, rows
   const placeholders = columns.map((_, index) => `$${index + 1}`).join(', ');
   const assignments = columns
     .filter((column) => column !== 'id' && column !== 'family_id')
-    .map((column) => `${column} = excluded.${column}`)
+    .map(
+      (column) =>
+        `${column} = case when ${table}.updated_at < excluded.updated_at then excluded.${column} else ${table}.${column} end`,
+    )
     .join(', ');
 
   const statement = `
@@ -37,7 +40,6 @@ const push = async (tx: TransactionSql, table: SyncTable, familyId: string, rows
     values (${placeholders})
     on conflict (id) do update
       set ${assignments}, seq = nextval('sync_seq')
-      where ${table}.updated_at < excluded.updated_at
   `;
 
   for (const row of rows) {
