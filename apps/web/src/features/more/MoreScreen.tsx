@@ -5,7 +5,7 @@ import { persist } from '../../db/repo.ts';
 import { api } from '../../api/client.ts';
 import { resetLocalData, sync, syncStore } from '../../sync/engine.ts';
 import { syncLine } from '../../sync/caption.ts';
-import { openAccounts, openCategories, openInvite, openLimits } from '../../app/navigation.ts';
+import { openAccounts, openCategories, openInvite, openLimits, openRecovery } from '../../app/navigation.ts';
 import { sessionStore } from '../../state/session.ts';
 import { plural } from '../../ui/plural.ts';
 import { clearBiometric, enrollBiometric, hasBiometric, platformAuthenticatorAvailable } from '../../state/webauthn.ts';
@@ -163,6 +163,10 @@ export const MoreScreen = () => {
           <span>Вход по Face ID</span>
           <span className="value">{biometric ? 'включён' : biometricReady ? 'выключен' : 'недоступен'}</span>
         </button>
+        <button type="button" className="field" onClick={openRecovery}>
+          <span>Ключ восстановления</span>
+          <span className="value">›</span>
+        </button>
       </div>
       <p className="note" style={{ padding: '0 4px' }}>
         {biometricError || 'PIN остаётся запасным способом и работает без сети.'}
@@ -177,6 +181,7 @@ export const MoreScreen = () => {
             Выйти на этом устройстве
           </button>
         </div>
+        <p className="note">На сервере останется зашифрованная копия. На новом телефоне понадобится ключ восстановления.</p>
       </div>
     </div>
   );

@@ -23,6 +23,7 @@ export type Overlay =
   | { kind: 'accounts' }
   | { kind: 'categories' }
   | { kind: 'invite' }
+  | { kind: 'recovery' }
   | null;
 
 export const tabStore = createStore<Tab>('home');
@@ -37,4 +38,5 @@ export const openTransaction = (id: string): void => overlayStore.set({ kind: 't
 export const openAccounts = (): void => overlayStore.set({ kind: 'accounts' });
 export const openCategories = (): void => overlayStore.set({ kind: 'categories' });
 export const openInvite = (): void => overlayStore.set({ kind: 'invite' });
+export const openRecovery = (): void => overlayStore.set({ kind: 'recovery' });
 export const closeOverlay = (): void => overlayStore.set(null);

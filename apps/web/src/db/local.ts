@@ -4,6 +4,9 @@ import type { Account, Budget, Category, Family, SyncTable, Transaction } from '
 export type OutboxEntry = { key: string; table: SyncTable; id: string };
 export type MetaEntry = { key: string; value: unknown };
 
+/** key неэкспортируемый: exportKey его не отдаст. recoveryKey лежит рядом, чтобы показать его после PIN. */
+export type SecretRecord = { id: string; key: CryptoKey; recoveryKey: string; wrappedKey: string };
+
 class LocalDatabase extends Dexie {
   families!: Table<Family, string>;
   accounts!: Table<Account, string>;
@@ -12,6 +15,7 @@ class LocalDatabase extends Dexie {
   budgets!: Table<Budget, string>;
   outbox!: Table<OutboxEntry, string>;
   meta!: Table<MetaEntry, string>;
+  secrets!: Table<SecretRecord, string>;
 
   constructor() {
     super('kubyshka');
@@ -24,6 +28,7 @@ class LocalDatabase extends Dexie {
       outbox: 'key',
       meta: 'key',
     });
+    this.version(2).stores({ secrets: 'id' });
   }
 }
 

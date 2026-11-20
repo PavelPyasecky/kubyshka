@@ -9,3 +9,6 @@ export * from './suggest.ts';
 export * from './seed.ts';
 export * from './merge.ts';
 export * from './retry.ts';
+export * from './payload.ts';
+export * from './vault.ts';
+export * from './release.ts';
