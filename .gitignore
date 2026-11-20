@@ -4,6 +4,7 @@ dist/
 .env.*
 !.env.example
 backups/
+.deploy/
 *.sql.gz
 *.log
 .DS_Store

@@ -33,6 +33,8 @@ npm run build --workspace @kubyshka/web
 node scripts/smoke.mjs http://127.0.0.1:3100   # если трогали сервер
 ```
 
+Те же проверки, плюс бюджет сборки и сверка `integrity.json`, выполняет GitHub Actions на pull request и на push в `main`. Порядок выката на сервер описан в [`DEPLOY.md`](DEPLOY.md). `integrity.json` коммитит человек в том же pull request: workflow не пушит в `main`, иначе сверка с GitHub перестала бы отличать публикацию от файлов на сервере.
+
 ## Этап A. Без этого нельзя пользоваться ежедневно
 
 ### A1. Карточка операции и редактирование
