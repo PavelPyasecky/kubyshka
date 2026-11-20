@@ -1,7 +1,6 @@
 import {
   buildInsights,
   daysInMonth,
-  formatMoney,
   monthKeyOf,
   monthName,
   savingsSnapshot,
@@ -12,6 +11,7 @@ import { openSavings, openTransaction, tabStore } from '../../app/navigation.ts'
 import { sessionStore } from '../../state/session.ts';
 import { TransactionRow } from '../transactions/TransactionRow.tsx';
 import { InsightList } from '../insights/InsightList.tsx';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
 
 const capitalize = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -58,25 +58,31 @@ export const HomeScreen = () => {
 
       <div className="hero">
         <span className="caption">Все счета</span>
-        <div className="amount-xl">{formatMoney(totalBalance(accounts, transactions))}</div>
+        <div className="amount-xl">
+          <MoneyAmount minor={totalBalance(accounts, transactions)} />
+        </div>
       </div>
 
       <div className="card month">
         <button type="button" onClick={() => tabStore.set('analytics')}>
           <span className="caption">Потрачено</span>
-          <div className="amount-m">{formatMoney(snapshot.expense)}</div>
+          <div className="amount-m">
+            <MoneyAmount minor={snapshot.expense} />
+          </div>
           {limit > 0 && (
             <div className="track">
               <b style={{ width: `${Math.min(100, (snapshot.expense / limit) * 100)}%`, background: 'var(--label-2)' }} />
               <u style={{ left: `${(now.getDate() / daysInMonth(month)) * 100}%` }} />
             </div>
           )}
-          <span className="caption">{limit > 0 ? `из ${formatMoney(limit)}` : `за ${monthName(month)}`}</span>
+          <span className="caption">{limit > 0 ? <>из <MoneyAmount minor={limit} /></> : `за ${monthName(month)}`}</span>
         </button>
 
         <button type="button" onClick={openSavings}>
           <span className="caption">Отложится</span>
-          <div className="amount-m">≈ {formatMoney(snapshot.forecastSaved)}</div>
+          <div className="amount-m">
+            ≈ <MoneyAmount minor={snapshot.forecastSaved} />
+          </div>
           <div className="track">
             <b
               style={{
@@ -85,11 +91,16 @@ export const HomeScreen = () => {
               }}
             />
           </div>
-          <span className="caption">норма {formatMoney(snapshot.norm)}</span>
+          <span className="caption">
+            норма <MoneyAmount minor={snapshot.norm} />
+          </span>
         </button>
 
         <p className="forecast">
-          Сейчас отложено <b>{formatMoney(snapshot.saved)}</b>
+          Сейчас отложено{' '}
+          <b>
+            <MoneyAmount minor={snapshot.saved} />
+          </b>
         </p>
       </div>
 

@@ -1,4 +1,4 @@
-import { formatSigned } from '@kubyshka/shared';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
 import type { Transaction } from '@kubyshka/shared';
 import { byId, useAccounts, useCategories, useTransactions } from '../../data/hooks.ts';
 import { sessionStore } from '../../state/session.ts';
@@ -60,7 +60,9 @@ export const TransactionsScreen = () => {
         <section key={title}>
           <div className="day-head">
             <span>{title}</span>
-            <span>{formatSigned(dayTotal(group))}</span>
+            <span>
+              <MoneyAmount minor={dayTotal(group)} signed />
+            </span>
           </div>
           <div className="list">
             {group.map((transaction) => (

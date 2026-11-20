@@ -4,68 +4,22 @@ import { useCategories, useTransactions } from '../../data/hooks.ts';
 import { persist, softDelete } from '../../db/repo.ts';
 import { closeOverlay } from '../../app/navigation.ts';
 import { IconPicker } from '../../ui/IconPicker.tsx';
+import { SortableList } from '../../ui/SortableList.tsx';
 
-const reorder = <T,>(items: T[], from: number, to: number): T[] => {
-  if (from === to || to < 0 || to >= items.length) return items;
-  const next = [...items];
-  const [item] = next.splice(from, 1);
-  if (item) next.splice(to, 0, item);
-  return next;
-};
-
-const CategoryRows = ({ items, onEdit, onReorder }: { items: Category[]; onEdit: (category: Category) => void; onReorder: (items: Category[]) => void }) => {
-  const [drag, setDrag] = useState<{ from: number; over: number } | null>(null);
-  const shown = drag ? reorder(items, drag.from, drag.over) : items;
-
-  return (
-    <div className="list">
-      {shown.map((category) => (
-        <div className="op" key={category.id}>
-          <button type="button" className="op-main" onClick={() => onEdit(category)}>
-            <div className="ic" style={{ background: `${category.color}1A` }}>
-              {category.icon}
-            </div>
-            <div className="txt">
-              <b>{category.name}</b>
-            </div>
-          </button>
-          <button
-            type="button"
-            className="handle"
-            aria-label={`Перетащить ${category.name}`}
-            onPointerDown={(event) => {
-              const handle = event.currentTarget;
-              handle.setPointerCapture(event.pointerId);
-              const origin = event.clientY;
-              const from = items.findIndex((item) => item.id === category.id);
-              let over = from;
-
-              const move = (ev: PointerEvent) => {
-                const next = Math.max(0, Math.min(items.length - 1, from + Math.round((ev.clientY - origin) / 56)));
-                if (next === over) return;
-                over = next;
-                setDrag({ from, over });
-              };
-              const finish = () => {
-                handle.removeEventListener('pointermove', move);
-                handle.removeEventListener('pointerup', finish);
-                handle.removeEventListener('pointercancel', finish);
-                setDrag(null);
-                if (over !== from) onReorder(reorder(items, from, over));
-              };
-
-              handle.addEventListener('pointermove', move);
-              handle.addEventListener('pointerup', finish);
-              handle.addEventListener('pointercancel', finish);
-            }}
-          >
-            ☰
-          </button>
+const CategoryRows = ({ items, onEdit, onReorder }: { items: Category[]; onEdit: (category: Category) => void; onReorder: (items: Category[]) => void }) => (
+  <SortableList items={items} onReorder={onReorder} label={(category) => `Перетащить ${category.name}`}>
+    {(category) => (
+      <button type="button" className="op-main" onClick={() => onEdit(category)}>
+        <div className="ic" style={{ background: `${category.color}1A` }}>
+          {category.icon}
         </div>
-      ))}
-    </div>
-  );
-};
+        <div className="txt">
+          <b>{category.name}</b>
+        </div>
+      </button>
+    )}
+  </SortableList>
+);
 
 const CategoryList = ({ onCreate, onEdit }: { onCreate: () => void; onEdit: (category: Category) => void }) => {
   const categories = useCategories();
@@ -89,7 +43,7 @@ const CategoryList = ({ onCreate, onEdit }: { onCreate: () => void; onEdit: (cat
         <div className="title-row">
           <h1>Категории</h1>
         </div>
-        <p className="caption">Архивная категория не предлагается при вводе и остаётся в отчётах. Порядок меняется перетаскиванием.</p>
+        <p className="caption">Архивная категория не предлагается при вводе и остаётся в отчётах. Порядок меняется за ручку справа: строка следует за пальцем.</p>
 
         <div className="section-head">
           <h2>Расходы</h2>

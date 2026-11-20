@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { buildInsights } from './insights.ts';
 import { savingsSnapshot } from './savings.ts';
-import { formatMoney, minorToRaw, parseAmount, sharePercent, toMinor } from './money.ts';
+import { currencyMark, formatMoney, formatSigned, minorToRaw, parseAmount, sharePercent, toMinor } from './money.ts';
 import {
   accountBalances,
   fullestSpendingAccount,
@@ -76,6 +76,16 @@ test('прогноз округляется до рублей', () => {
 
   assert.equal(snapshot.forecastSaved % 100, 0);
   assert.ok(!formatMoney(snapshot.forecastSaved).includes(','));
+  assert.ok(formatMoney(snapshot.forecastSaved).endsWith(` ${currencyMark}`));
+});
+
+test('сумма показывается в белорусских рублях', () => {
+  assert.equal(formatMoney(1_250), '12,50 Br');
+  assert.equal(formatMoney(1_200), '12 Br');
+  assert.equal(formatMoney(0), '0 Br');
+  assert.equal(formatMoney(-1_250), '−12,50 Br');
+  assert.equal(formatSigned(1_250), '+12,50 Br');
+  assert.equal(formatSigned(-1_250), '−12,50 Br');
 });
 
 const categories: Category[] = [

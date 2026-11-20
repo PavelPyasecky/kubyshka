@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { accountBalances, formatMoney, minorToRaw, monthKeyOf, parseAmount } from '@kubyshka/shared';
+import { accountBalances, minorToRaw, monthKeyOf, parseAmount } from '@kubyshka/shared';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
 import { useAccounts, useBudgets, useCategories, useFamily, useOutboxCount, useTransactions } from '../../data/hooks.ts';
 import { persist } from '../../db/repo.ts';
 import { api } from '../../api/client.ts';
@@ -115,7 +116,9 @@ export const MoreScreen = () => {
               <b>{account.name}</b>
               <span>{account.kind === 'savings' ? 'накопительный' : 'общий'}</span>
             </div>
-            <div className="sum">{formatMoney(balances.get(account.id) ?? 0)}</div>
+            <div className="sum">
+              <MoneyAmount minor={balances.get(account.id) ?? 0} />
+            </div>
           </button>
         ))}
       </div>
