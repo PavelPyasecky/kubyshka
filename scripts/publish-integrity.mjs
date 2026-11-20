@@ -1,31 +1,14 @@
-import { createHash } from 'node:crypto';
-import { readdir, readFile, writeFile } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { buildReleaseManifest, manifestJson } from './release-manifest.mjs';
 
 const root = join(import.meta.dirname, '..');
 const dist = join(root, 'apps/web/dist');
+const manifest = await buildReleaseManifest(dist);
+const json = manifestJson(manifest);
 
-const files = [];
-const walk = async (dir) => {
-  for (const entry of await readdir(dir, { withFileTypes: true })) {
-    const path = join(dir, entry.name);
-    if (entry.isDirectory()) await walk(path);
-    else if (entry.name !== 'integrity.json') files.push(path);
-  }
-};
-
-await walk(dist);
-files.sort();
-
-const manifest = { version: 1, algo: 'sha256', files: {} };
-for (const file of files) {
-  const hash = createHash('sha256').update(await readFile(file)).digest('hex');
-  manifest.files[relative(dist, file).split('\\').join('/')] = hash;
-}
-
-const json = `${JSON.stringify(manifest, null, 2)}\n`;
 await writeFile(join(dist, 'integrity.json'), json);
 await writeFile(join(root, 'integrity.json'), json);
 console.log(`integrity.json: ${Object.keys(manifest.files).length} файлов`);
-console.log('Дальше закоммитьте integrity.json и запушьте его до выката этой же сборки.');
-console.log('Репозиторий закрытый: выложите файл публично и соберите клиент с VITE_RELEASE_MANIFEST_URL.');
+console.log('Закоммитьте integrity.json в этот же pull request. CI отклонит сборку, если файл не совпадёт с dist.');
+console.log('Файл должен оказаться в main до выката: клиент сверяет с ним ответ сервера.');

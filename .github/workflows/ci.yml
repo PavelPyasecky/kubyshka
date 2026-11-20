@@ -1,0 +1,173 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: kubyshka
+          POSTGRES_PASSWORD: kubyshka
+          POSTGRES_DB: kubyshka
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kubyshka -d kubyshka"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Зависимости
+        run: npm ci
+
+      - name: Типы
+        run: npm run typecheck
+
+      - name: Тесты
+        run: npm test
+
+      - name: Сборка клиента
+        run: npm run build --workspace @kubyshka/web
+
+      - name: Бюджет 250 КБ gzip
+        run: node scripts/check-bundle-budget.mjs
+
+      - name: Сверка integrity.json со сборкой
+        run: node scripts/check-integrity.mjs
+
+      - name: Копия манифеста в сборку
+        run: cp integrity.json apps/web/dist/integrity.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Smoke на временной базе
+        env:
+          DATABASE_URL: postgres://kubyshka:kubyshka@127.0.0.1:5432/kubyshka
+          COOKIE_SECURE: 'false'
+          PORT: '3100'
+          HOST: 127.0.0.1
+        run: |
+          set -euo pipefail
+          node apps/api/src/index.ts >"$RUNNER_TEMP/api.log" 2>&1 &
+          pid=$!
+          ok=0
+          for _ in $(seq 1 60); do
+            if curl -fsS "http://127.0.0.1:3100/api/health" >/dev/null; then
+              ok=1
+              break
+            fi
+            if ! kill -0 "$pid" 2>/dev/null; then
+              echo "Сервер завершился до /api/health" >&2
+              cat "$RUNNER_TEMP/api.log" >&2
+              exit 1
+            fi
+            sleep 0.5
+          done
+          if [ "$ok" != 1 ]; then
+            echo "Сервер не ответил на /api/health" >&2
+            cat "$RUNNER_TEMP/api.log" >&2
+            exit 1
+          fi
+          set +e
+          node scripts/smoke.mjs http://127.0.0.1:3100
+          status=$?
+          set -e
+          kill "$pid" 2>/dev/null || true
+          if [ "$status" -ne 0 ]; then
+            cat "$RUNNER_TEMP/api.log" >&2
+          fi
+          exit "$status"
+
+      - name: Образ api
+        run: docker build -f apps/api/Dockerfile -t kubyshka-api:ci .
+
+      - name: Локальная проверка скрипта выката
+        run: |
+          if ! command -v rsync >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y rsync
+          fi
+          bash scripts/deploy-local-test.sh
+
+  deploy:
+    needs: verify
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    concurrency:
+      group: kubyshka-production
+      cancel-in-progress: false
+    steps:
+      - name: Секрет выката
+        id: gate
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_SSH_KEY//[[:space:]]/}" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Выкат пропущен::Секрет DEPLOY_SSH_KEY не задан в окружении production. Сервер не трогался. Добавьте приватный ключ root и перезапустите workflow."
+            {
+              echo "### Выкат пропущен"
+              echo "Секрет \`DEPLOY_SSH_KEY\` не задан в окружении \`production\`. Сервер не изменялся."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.ready == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@v4
+        if: steps.gate.outputs.ready == 'true'
+        with:
+          name: web-dist
+          path: apps/web/dist
+
+      - name: Выкат
+        if: steps.gate.outputs.ready == 'true'
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key_file="$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$key_file"
+          unset DEPLOY_SSH_KEY
+          export DEPLOY_SSH_KEY_FILE="$key_file"
+          bash scripts/deploy.sh

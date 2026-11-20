@@ -1,0 +1,9 @@
+node_modules
+.git
+apps/web/dist
+backups
+.deploy
+.env
+.env.*
+*.log
+*.sql.gz

@@ -1,5 +1,7 @@
 // Проверяет живой сервер: шифротекст, миграцию открытых колонок и разрешение конфликта.
 // Запуск: node scripts/smoke.mjs http://127.0.0.1:3100
+// DATABASE_URL, если задан, используется и для временной базы миграции, и для живой.
+// Без переменной остаётся локальный сокет пользователя ubuntu.
 
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -32,15 +34,22 @@ const check = (label, condition) => {
   console.log(`  ок: ${label}`);
 };
 
-const postgresOptions = { user: 'ubuntu', host: '/var/run/postgresql', onnotice: () => {} };
+const openPostgres = (database) => {
+  if (process.env.DATABASE_URL) {
+    const url = new URL(process.env.DATABASE_URL);
+    url.pathname = `/${database}`;
+    return postgres(url.toString(), { onnotice: () => {}, max: 1 });
+  }
+  return postgres({ user: 'ubuntu', host: '/var/run/postgresql', database, onnotice: () => {}, max: 1 });
+};
 
 const migrationCheck = async () => {
-  const root = postgres({ ...postgresOptions, database: 'postgres' });
+  const root = openPostgres('postgres');
   await root.unsafe('drop database if exists kubyshka_migrate_check');
   await root.unsafe('create database kubyshka_migrate_check');
   await root.end();
 
-  const db = postgres({ ...postgresOptions, database: 'kubyshka_migrate_check' });
+  const db = openPostgres('kubyshka_migrate_check');
   const dir = join(dirname(fileURLToPath(import.meta.url)), '../apps/api/migrations');
   await db.unsafe(await readFile(join(dir, '0001_init.sql'), 'utf8'));
 
@@ -73,7 +82,7 @@ const migrationCheck = async () => {
   check('после миграции у операции нет открытых колонок', columns.length === 0);
   await db.end();
 
-  const cleanup = postgres({ ...postgresOptions, database: 'postgres' });
+  const cleanup = openPostgres('postgres');
   await cleanup.unsafe('drop database if exists kubyshka_migrate_check');
   await cleanup.end();
 };

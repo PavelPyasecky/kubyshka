@@ -41,11 +41,9 @@ POSTGRES_PASSWORD=<openssl rand -base64 24>
 SETUP_CODE=<необязательно>
 ```
 
-Собрать клиент и поднять всё:
+Клиент на этом VPS не собирается: памяти не хватает. Сборка идёт снаружи, в GitHub Actions или на другой машине, и в каталог `apps/web/dist` попадают уже готовые файлы. Пока Caddy не запущен, каталог можно создать вместе с файлами. После запуска контейнера `web` каталог заменять нельзя: Caddy держит его inode через bind-mount и после `rm` или `mv` отдаёт 404. Новые файлы кладутся внутрь существующего каталога.
 
 ```bash
-npm install
-npm run build --workspace @kubyshka/web
 docker compose up -d --build
 ```
 
@@ -63,25 +61,106 @@ Caddy сам получит сертификат Let's Encrypt, поэтому �
 
 ### Обновление
 
-```bash
-git pull
-npm install
-npm run build --workspace @kubyshka/web
-node scripts/publish-integrity.mjs
-git add integrity.json
-git commit -m "Публикует хеши сборки"
-git push
-docker compose up -d --build
-```
+Выкат делает workflow `.github/workflows/ci.yml`. На pull request и на push в `main` он выполняет `npm ci`, проверку типов, тесты, сборку клиента, бюджет 250 КБ gzip для скриптов из `index.html`, сверку `integrity.json` со сборкой, `scripts/smoke.mjs` на временном Postgres и сборку образа `api`. В `main` не попадает сборка, чей закоммиченный `integrity.json` не совпал с файлами.
 
-`scripts/publish-integrity.mjs` пишет SHA-256 файлов из `apps/web/dist` в `integrity.json` рядом с репозиторием и в саму сборку. Клиент перед включением новой версии скачивает `https://raw.githubusercontent.com/PavelPyasecky/kubyshka/main/integrity.json` и сравнивает хеши с файлами, которые только что отдал сервер. Пока файл на GitHub не совпадает или его не удаётся скачать, открытое приложение оставляет старую версию и объясняет, что делать.
+`integrity.json` по-прежнему обновляет человек командой `node scripts/publish-integrity.mjs` и коммитит его в тот же pull request. Workflow в `main` ничего не пушит. Клиент перед включением новой версии скачивает `https://raw.githubusercontent.com/PavelPyasecky/kubyshka/main/integrity.json` и сравнивает хеши с файлами, которые только что отдал сервер. Если бы манифест коммитил тот же job, который собирает клиент, публикация и сервер перестали бы быть разными сторонами, и сверка больше не ловила бы подмену.
 
-Репозиторий сейчас закрытый, поэтому анонимный запрос к `raw.githubusercontent.com` получит отказ, и обновление не включится. Токен в клиент класть нельзя. Нужно одно из двух:
+После зелёного CI push в `main` выкатывает ровно этот коммит. Тот же выкат запускается вручную: Actions → CI/CD → Run workflow, ветка `main`. Два выката не идут одновременно. Если за время сборки в `main` появился более новый коммит, старый push на сервер уже не ставится.
+
+`scripts/smoke.mjs` и любые записи в продовый API из workflow не выполняются. Smoke ходит только во временную базу CI.
+
+На сервере `scripts/deploy.sh` делает так:
+
+1. Проверяет ключ хоста. `StrictHostKeyChecking=no` не используется.
+2. До замены файлов снимает дамп базы в `/opt/kubyshka/.deploy/backups`. Каталог получает права `700`, файл — `600`. Ночной дамп остаётся в `./backups`: его пишет контейнер не от root, и `700` на том каталоге остановили бы его.
+3. Сохраняет текущие `apps/web/dist`, коммит и образ `api`.
+4. Кладёт новую сборку внутрь существующего `apps/web/dist` через `rsync --delete`. Сам каталог не заменяется.
+5. Делает `git fetch` и `checkout` этого коммита. `.env` не печатается и не перезаписывается.
+6. Запускает `docker compose up -d --build --wait`.
+7. Снаружи проверяет ответ сайта `200`, заголовок Content-Security-Policy, SHA-256 каждого файла из `integrity.json` и ответ `GET /api/auth/state`.
+
+Если проверка после выката не прошла, скрипт возвращает прежние `dist`, коммит и образ `api` и завершается с ошибкой. Дамп базы сам не восстанавливается.
+
+Репозиторий сейчас закрытый, поэтому анонимный запрос к `raw.githubusercontent.com` получит отказ, и обновление на телефоне не включится. Токен в клиент класть нельзя. Нужно одно из двух:
 
 - открыть репозиторий, чтобы этот файл читался без входа;
 - выложить тот же `integrity.json` в публичный репозиторий или gist и собрать клиент с адресом файла: `VITE_RELEASE_MANIFEST_URL=https://raw.githubusercontent.com/<владелец>/<репозиторий>/<ветка>/integrity.json`.
 
-Политика CSP уже разрешает только origin `https://raw.githubusercontent.com`, поэтому адрес должен быть на нём. Сначала пушится манифест, потом выкатывается та же сборка. Другой порядок или ручная правка файлов на сервере останавливает обновление.
+Политика CSP уже разрешает только origin `https://raw.githubusercontent.com`, поэтому адрес должен быть на нём. Сначала в `main` оказывается манифест, потом выкатывается та же сборка. Другой порядок или ручная правка файлов на сервере останавливает обновление.
+
+### Секреты и переменные
+
+Job выката использует окружение GitHub `production`.
+
+| Имя | Тип | Обязательно | Значение, если не задано |
+| --- | --- | --- | --- |
+| `DEPLOY_SSH_KEY` | secret | да, иначе выкат пропускается | приватный ключ ed25519 пользователя `root` |
+| `DEPLOY_HOST` | variable | нет | `62.182.102.96` |
+| `DEPLOY_USER` | variable | нет | `root` |
+| `DEPLOY_PATH` | variable | нет | `/opt/kubyshka` |
+| `SITE_URL` | variable | нет | `https://kubyshka.prosandbox.ru` |
+| `DEPLOY_KNOWN_HOSTS` | variable | нет | ключ хоста уже записан в `scripts/deploy.sh` |
+
+Секрет читается только job-ом с окружением `production`. Его можно положить в секреты этого окружения или в секреты репозитория. Если переменные не заданы, берутся значения из таблицы. Строка ключа хоста, которая используется без переменной:
+
+```
+62.182.102.96 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDUoF8WScNFhPISBQ8DpqryzBXnUER2JgxSQfD3+6rHM
+```
+
+`DEPLOY_KNOWN_HOSTS` нужна, только если этот ключ сменился. Без подходящей строки known_hosts выкат останавливается и не переходит на проверку ключа «принимать любой».
+
+Если `DEPLOY_SSH_KEY` пустой, job завершается успешно и пишет, что выкат пропущен. Сервер не меняется. Правила защиты окружения, если их включить, запрашиваются до шагов job; без секрета сервер после этого всё равно не меняется.
+
+### Перед первым автоматическим выкатом
+
+На сервере один раз:
+
+1. Поставить `rsync`, если его нет: `apt-get install -y rsync`.
+2. Проверить, что из `/opt/kubyshka` под root без запроса пароля проходит `git fetch origin main`. Скрипт не приносит свой токен к GitHub.
+3. Положить публичную половину `DEPLOY_SSH_KEY` в `/root/.ssh/authorized_keys`. Если это тот же ключ, которым вы уже входите по SSH, ничего добавлять не нужно.
+4. Не удалять `/opt/kubyshka/apps/web/dist`: он уже смонтирован в Caddy.
+5. Убедиться, что `docker compose version` понимает `--wait`. В Ubuntu 24.04 это пакет `docker-compose-v2`.
+
+В GitHub создайте окружение `production` и секрет `DEPLOY_SSH_KEY`. После этого push в `main` выкатывает сам.
+
+### Если манифест разошёлся со сборкой
+
+CI останавливается и печатает, каких файлов или хешей не хватает. Локально:
+
+```bash
+npm run build --workspace @kubyshka/web
+node scripts/publish-integrity.mjs
+git add integrity.json
+```
+
+Хеши одной и той же сборки совпадают между машинами. Коммить нужно `integrity.json` из корня репозитория.
+
+### Откат
+
+Автоматический откат возвращает предыдущие файлы клиента, коммит и образ `api`. Базу он не перезаписывает.
+
+Вручную на сервере:
+
+```bash
+cd /opt/kubyshka
+sha=$(cat .deploy/previous-commit)
+git fetch origin "$sha"
+git checkout --detach --force "$sha"
+mkdir -p apps/web/dist
+rsync -a --delete .deploy/previous-dist/ apps/web/dist/
+docker tag kubyshka-api:rollback kubyshka-api:latest
+docker compose up -d --no-build --force-recreate --wait
+```
+
+`apps/web/dist` и здесь не заменяется, обновляется только содержимое.
+
+Дамп перед выкатом лежит в `.deploy/backups/kubyshka-pre-deploy-*.sql.gz`. Восстановление базы затирает то, что семья записала после дампа, поэтому оно остаётся ручным:
+
+```bash
+gunzip -c .deploy/backups/kubyshka-pre-deploy-ДАТА.sql.gz | docker compose exec -T db psql -U kubyshka kubyshka
+```
+
+Если на сервере снова лежит сборка, которой уже нет в `integrity.json` ветки `main`, телефон её не включит: клиент сверяет файлы с манифестом `main`. Чтобы эта сборка снова прошла сверку, её манифест должен оказаться в `main` отдельным коммитом человека.
 
 ### Резервные копии
 
@@ -98,5 +177,7 @@ docker compose logs -f api      # ошибки сервера
 docker compose logs -f web      # выпуск сертификата
 docker compose exec db psql -U kubyshka kubyshka -c '\dt'
 ```
+
+Журнал автоматического выката — во вкладке Actions у workflow CI/CD. Дамп, снятый перед выкатом, лежит в `.deploy/backups`.
 
 Состояние синхронизации на устройстве видно в разделе «Ещё». Кнопка «Выйти на этом устройстве» стирает локальную базу и отзывает токен, данные на сервере остаются.
