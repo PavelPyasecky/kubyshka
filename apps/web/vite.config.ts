@@ -1,12 +1,29 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { csp, cspHeader } from './csp.ts';
+
+const cspMeta = (): Plugin => ({
+  name: 'csp-meta',
+  transformIndexHtml(html, ctx) {
+    if (ctx.server) return html;
+    return html.replace('<head>', `<head>\n    <meta http-equiv="Content-Security-Policy" content="${csp}" />`);
+  },
+  configurePreviewServer(server) {
+    server.middlewares.use((_request, response, next) => {
+      response.setHeader('Content-Security-Policy', cspHeader);
+      next();
+    });
+  },
+});
 
 export default defineConfig({
   plugins: [
     react(),
+    cspMeta(),
     VitePWA({
       registerType: 'prompt',
+      injectRegister: null,
       includeAssets: ['apple-touch-icon.png'],
       manifest: {
         name: 'Кубышка',
@@ -24,8 +41,10 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallbackDenylist: [/^\/api\//],
+        navigateFallbackDenylist: [/^\/api\//, /integrity\.json$/],
+        globIgnores: ['**/integrity.json'],
         clientsClaim: true,
+        skipWaiting: false,
       },
     }),
   ],

@@ -1,9 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import { z } from 'zod';
-import { defaultAccounts, defaultCategories } from '@kubyshka/shared';
 import { db } from '../db/client.ts';
-import { accounts, categories, devices, families, invites, members } from '../db/schema.ts';
+import { devices, families, familyKeys, invites, members } from '../db/schema.ts';
 import { env } from '../env.ts';
 import { hashPin, hashToken, newId, newInviteCode, verifyPin } from '../lib/crypto.ts';
 import { clearSession, issueDevice, readSession, requireSession } from '../lib/session.ts';
@@ -11,50 +10,21 @@ import { clearSession, issueDevice, readSession, requireSession } from '../lib/s
 const MEMBER_COLORS = ['#15724C', '#7D5BA6', '#3478F6', '#B07400'];
 const INVITE_TTL_MS = 24 * 60 * 60 * 1000;
 
+const wrappedKeySchema = z.string().regex(/^[A-Za-z0-9_-]{40,128}$/);
+
 const credentials = {
   name: z.string().trim().min(1).max(40),
   pin: z.string().regex(/^\d{4}$/),
   device: z.string().trim().min(1).max(40).default('iPhone'),
 };
 
-const bootstrapBody = z.object({ ...credentials, setupCode: z.string().default('') });
+const bootstrapBody = z.object({ ...credentials, setupCode: z.string().default(''), wrappedKey: wrappedKeySchema });
 const joinBody = z.object({ ...credentials, code: z.string().regex(/^\d{6}$/) });
 const restoreBody = z.object({ ...credentials });
 
 const familyExists = async (): Promise<boolean> => {
   const [row] = await db.select({ id: families.id }).from(families).limit(1);
   return Boolean(row);
-};
-
-const seedFamily = async (familyId: string, memberId: string, now: number): Promise<void> => {
-  await db.insert(categories).values(
-    defaultCategories.map((category, index) => ({
-      id: newId(),
-      familyId,
-      updatedAt: now,
-      updatedBy: memberId,
-      name: category.name,
-      flow: category.flow,
-      icon: category.icon,
-      color: category.color,
-      sort: index,
-    })),
-  );
-
-  await db.insert(accounts).values(
-    defaultAccounts.map((account, index) => ({
-      id: newId(),
-      familyId,
-      updatedAt: now,
-      updatedBy: memberId,
-      name: account.name,
-      kind: account.kind,
-      scope: 'shared',
-      icon: account.icon,
-      color: account.color,
-      sort: index,
-    })),
-  );
 };
 
 const createMember = async (familyId: string, name: string, pin: string): Promise<string> => {
@@ -77,7 +47,6 @@ export const authRoutes = async (app: FastifyInstance): Promise<void> => {
 
   app.get('/me', { preHandler: requireSession }, async (request) => {
     const { familyId, memberId } = request.session!;
-    const [family] = await db.select().from(families).where(eq(families.id, familyId));
     const roster = await db
       .select({ id: members.id, name: members.name, color: members.color })
       .from(members)
@@ -92,9 +61,25 @@ export const authRoutes = async (app: FastifyInstance): Promise<void> => {
 
     return {
       memberId,
-      family,
+      familyId,
       members: roster.map((member) => ({ ...member, deviceCount: deviceCount.get(member.id) ?? 0 })),
     };
+  });
+
+  app.get('/key', { preHandler: requireSession }, async (request, reply) => {
+    const { familyId } = request.session!;
+    const [row] = await db.select().from(familyKeys).where(eq(familyKeys.familyId, familyId));
+    if (!row) return reply.code(404).send({ error: 'key_missing' });
+    return { wrappedKey: row.wrappedKey };
+  });
+
+  app.post('/key', { preHandler: requireSession }, async (request, reply) => {
+    const { familyId } = request.session!;
+    const body = z.object({ wrappedKey: wrappedKeySchema }).parse(request.body);
+    const [existing] = await db.select({ familyId: familyKeys.familyId }).from(familyKeys).where(eq(familyKeys.familyId, familyId));
+    if (existing) return reply.code(409).send({ error: 'key_exists' });
+    await db.insert(familyKeys).values({ familyId, wrappedKey: body.wrappedKey });
+    return { ok: true };
   });
 
   app.post('/bootstrap', async (request, reply) => {
@@ -106,12 +91,12 @@ export const authRoutes = async (app: FastifyInstance): Promise<void> => {
     }
 
     const familyId = newId();
-    const now = Date.now();
-    await db.insert(families).values({ id: familyId, familyId, updatedAt: now, name: 'Семья' });
+    // Нулевое время отдаёт первую содержательную запись клиенту: только он умеет её зашифровать.
+    await db.insert(families).values({ id: familyId, familyId, updatedAt: 0 });
+    await db.insert(familyKeys).values({ familyId, wrappedKey: body.wrappedKey });
 
     const memberId = await createMember(familyId, body.name, body.pin);
     await db.update(families).set({ updatedBy: memberId }).where(eq(families.id, familyId));
-    await seedFamily(familyId, memberId, now);
     await issueDevice(reply, memberId, body.device);
 
     return { memberId, familyId };

@@ -503,12 +503,49 @@
   padding: 16px 0;
 }
 
-.form input {
+.form input,
+.form textarea,
+.link-field {
   width: 100%;
+  min-height: 44px;
   padding: 13px 14px;
   border-radius: 12px;
   border: none;
   background: var(--surface);
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.form textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.link-field {
+  margin-top: 12px;
+  word-break: break-all;
+}
+
+.qr-wrap {
+  display: grid;
+  justify-content: center;
+  margin: 16px 0;
+}
+
+.qr {
+  width: min(240px, 72vw);
+  height: auto;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.recovery-key {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px;
+  line-height: 1.45;
+  letter-spacing: 0.03em;
+  text-align: center;
+  overflow-wrap: anywhere;
   -webkit-user-select: text;
   user-select: text;
 }
@@ -735,12 +772,27 @@ button.field {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   min-height: 44px;
   padding: calc(var(--safe-top) + 4px) 16px 4px;
   background: var(--accent);
   color: #fff;
   font-size: 15px;
+}
+
+.update-banner p {
+  margin: 0;
+  flex: 1 1 200px;
+}
+
+.update-banner.blocked {
+  background: var(--surface);
+  color: var(--label);
+}
+
+.update-banner.blocked button {
+  color: var(--accent);
 }
 
 .update-banner button {

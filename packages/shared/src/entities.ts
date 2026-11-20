@@ -83,16 +83,25 @@ export const syncTables = {
   budgets: budgetSchema,
 } as const;
 
-const incoming = <T extends z.ZodObject<{ seq: z.ZodType }>>(schema: T) =>
-  z.array(schema.omit({ seq: true })).default([]);
+/** На сервер уходит только конверт. Содержимое записи сидит внутри ciphertext. */
+export const syncEnvelopeSchema = z.object({
+  id,
+  familyId: id,
+  updatedAt: timestamp,
+  updatedBy: id.nullable(),
+  deleted: z.boolean(),
+  ciphertext: z.string().min(1).max(100_000),
+});
+
+const batch = z.array(syncEnvelopeSchema).default([]);
 
 export const syncRequestSchema = z.object({
   cursor: z.number().int().nonnegative(),
   changes: z.object({
-    families: incoming(familySchema),
-    accounts: incoming(accountSchema),
-    categories: incoming(categorySchema),
-    transactions: incoming(transactionSchema),
-    budgets: incoming(budgetSchema),
+    families: batch,
+    accounts: batch,
+    categories: batch,
+    transactions: batch,
+    budgets: batch,
   }),
 });

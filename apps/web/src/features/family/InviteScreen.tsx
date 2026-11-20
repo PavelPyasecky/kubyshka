@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
+import { inviteUrl } from '../../crypto/link.ts';
+import { readVault } from '../../db/vault.ts';
 import { createInvite } from '../../state/session.ts';
 import { closeOverlay } from '../../app/navigation.ts';
 import { plural } from '../../ui/plural.ts';
+import { QrCode } from './QrCode.tsx';
 
 const remainingLabel = (ms: number): string => {
   if (ms <= 0) return 'срок действия истёк';
@@ -15,15 +18,22 @@ const spaced = (code: string): string => (code.length === 6 ? `${code.slice(0, 3
 
 export const InviteScreen = () => {
   const [invite, setInvite] = useState<{ code: string; expiresAt: number }>();
+  const [recoveryKey, setRecoveryKey] = useState('');
   const [error, setError] = useState('');
   const [hint, setHint] = useState('');
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let cancelled = false;
-    void createInvite()
-      .then((result) => {
-        if (!cancelled) setInvite(result);
+    void Promise.all([createInvite(), readVault()])
+      .then(([result, vault]) => {
+        if (cancelled) return;
+        if (!vault) {
+          setError('На этом телефоне нет ключа семьи. Откройте его в разделе «Ещё» после ввода ключа восстановления.');
+          return;
+        }
+        setInvite(result);
+        setRecoveryKey(vault.recoveryKey);
       })
       .catch(() => {
         if (!cancelled) setError('Не удалось выпустить код. Проверьте сеть и откройте экран ещё раз.');
@@ -38,9 +48,11 @@ export const InviteScreen = () => {
     return () => clearInterval(timer);
   }, []);
 
+  const url = invite && recoveryKey ? inviteUrl(invite.code, recoveryKey) : '';
+
   const share = async () => {
-    if (!invite) return;
-    const text = `Код приглашения в Кубышку: ${invite.code}. Откройте приложение, выберите «У меня есть код приглашения» и введите эти шесть цифр.`;
+    if (!url || !invite) return;
+    const text = `Ссылка для входа в Кубышку. Шести цифр без неё недостаточно, ключ находится в ссылке и на сервер не уходит.\n${url}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Кубышка', text });
@@ -50,10 +62,10 @@ export const InviteScreen = () => {
       return;
     }
     try {
-      await navigator.clipboard.writeText(invite.code);
-      setHint('Код скопирован');
+      await navigator.clipboard.writeText(url);
+      setHint('Ссылка скопирована');
     } catch {
-      setHint('Не удалось скопировать код. Запишите его с экрана.');
+      setHint('Не удалось скопировать ссылку. Передайте её с экрана.');
     }
   };
 
@@ -72,17 +84,28 @@ export const InviteScreen = () => {
           <span className="caption">{invite ? remainingLabel(invite.expiresAt - now) : 'выпускаем код'}</span>
         </div>
 
-        <p className="lead">Откройте Кубышку на втором телефоне, выберите «У меня есть код приглашения» и введите эти шесть цифр.</p>
+        {url ? (
+          <div className="qr-wrap">
+            <QrCode text={url} />
+          </div>
+        ) : null}
+
+        <p className="lead">
+          Код из шести цифр только открывает вход. Ключ семьи лежит в ссылке после решётки и на картинке, на сервер он не уходит. На
+          втором телефоне откройте ссылку или наведите камеру на картинку.
+        </p>
+
+        {url ? <input className="link-field" readOnly aria-label="Ссылка для второго телефона" value={url} /> : null}
 
         {error ? <p className="error">{error}</p> : null}
 
         <div className="form">
-          <button type="button" className="primary" disabled={!invite} onClick={() => void share()}>
+          <button type="button" className="primary" disabled={!url} onClick={() => void share()}>
             Поделиться
           </button>
         </div>
         {hint ? <p className="note">{hint}</p> : null}
-        <p className="lead">После использования код сгорает. Новый можно выпустить в любой момент.</p>
+        <p className="lead">Отправьте ссылку только человеку из семьи. После использования код сгорает, ключ семьи остаётся тем же.</p>
       </div>
     </div>
   );
