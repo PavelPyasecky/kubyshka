@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { formatMoney, monthKeyOf, monthName, parseAmount, spentByCategory, toMajor } from '@kubyshka/shared';
+import { monthKeyOf, monthName, parseAmount, spentByCategory, toMajor } from '@kubyshka/shared';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
 import type { Budget, Category } from '@kubyshka/shared';
 import { useBudgets, useCategories, useTransactions } from '../../data/hooks.ts';
 import { persist } from '../../db/repo.ts';
@@ -51,7 +52,7 @@ const LimitRow = ({ category, budget, spent, month }: RowProps) => {
             />
           </div>
           <span className="caption">
-            {formatMoney(spent)} из {formatMoney(limit)}
+            <MoneyAmount minor={spent} /> из <MoneyAmount minor={limit} />
           </span>
         </>
       )}

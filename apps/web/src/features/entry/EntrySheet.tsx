@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { buildSuggestionIndex, minorToRaw, offeredCategories, parseAmount, suggestCategories } from '@kubyshka/shared';
+import { buildSuggestionIndex, currencyMark, minorToRaw, offeredCategories, parseAmount, suggestCategories } from '@kubyshka/shared';
+import { CurrencySign } from '../../ui/CurrencySign.tsx';
 import type { Transaction } from '@kubyshka/shared';
 import { Keypad, appendDigit, formatRaw } from '../../ui/Keypad.tsx';
 import { byId, useAccounts, useCategories, useTransactions } from '../../data/hooks.ts';
@@ -74,7 +75,7 @@ export const EntrySheet = ({ seed, onSaved }: { seed: EntrySeed; onSaved: (messa
     });
 
     tap();
-    onSaved(`${resolvedCategory ? known?.name : 'Перевод'}, ${formatRaw(raw)} ₽`);
+    onSaved(`${resolvedCategory ? known?.name : 'Перевод'}, ${formatRaw(raw)} ${currencyMark}`);
     closeEntry();
   };
 
@@ -121,7 +122,10 @@ export const EntrySheet = ({ seed, onSaved }: { seed: EntrySeed; onSaved: (messa
           <div className="entry-amount">
             <div className="value">
               {formatRaw(raw)}
-              <i> ₽</i>
+              <i>
+                <CurrencySign />
+              </i>
+              <span className="sr-only"> {currencyMark}</span>
             </div>
             <div className="entry-tools">
               <button

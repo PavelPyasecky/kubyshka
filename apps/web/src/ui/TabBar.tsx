@@ -29,7 +29,11 @@ export const TabBar = ({ active }: { active: Tab }) => (
     <TabButton tab="home" active={active === 'home'} />
     <TabButton tab="transactions" active={active === 'transactions'} />
     <button type="button" onClick={() => openEntry()} aria-label="Новая операция">
-      <span className="fab">+</span>
+      <span className="fab">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        </svg>
+      </span>
     </button>
     <TabButton tab="analytics" active={active === 'analytics'} />
     <TabButton tab="more" active={active === 'more'} />

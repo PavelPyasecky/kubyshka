@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { accountBalances, formatMoney, minorToRaw, parseAmount } from '@kubyshka/shared';
+import { accountBalances, minorToRaw, parseAmount } from '@kubyshka/shared';
 import type { Account } from '@kubyshka/shared';
 import { useAccounts, useTransactions } from '../../data/hooks.ts';
 import { persist, softDelete } from '../../db/repo.ts';
 import { closeOverlay } from '../../app/navigation.ts';
 import { IconPicker } from '../../ui/IconPicker.tsx';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
+import { SortableList } from '../../ui/SortableList.tsx';
 
 const KINDS: { id: Account['kind']; label: string }[] = [
   { id: 'cash', label: 'Наличные' },
@@ -31,21 +33,34 @@ const AccountList = ({ onCreate, onEdit }: { onCreate: () => void; onEdit: (acco
         <div className="title-row">
           <h1>Счета</h1>
         </div>
-        <p className="caption">Архивный счёт пропадает из ввода и остаётся в истории операций.</p>
+        <p className="caption">Архивный счёт пропадает из ввода и остаётся в истории операций. Порядок меняется за ручку справа.</p>
 
-        <div className="list" style={{ marginTop: 14 }}>
-          {visible.map((account) => (
-            <button type="button" className="op" key={account.id} onClick={() => onEdit(account)}>
-              <div className="ic" style={{ background: `${account.color}1A` }}>
-                {account.icon}
-              </div>
-              <div className="txt">
-                <b>{account.name}</b>
-                <span>{kindLabel(account.kind)}</span>
-              </div>
-              <div className="sum">{formatMoney(balances.get(account.id) ?? 0)}</div>
-            </button>
-          ))}
+        <div style={{ marginTop: 14 }}>
+          <SortableList
+            items={visible}
+            label={(account) => `Перетащить ${account.name}`}
+            onReorder={(next) => {
+              const ordered = [...next, ...archived];
+              void Promise.all(
+                ordered.map((account, sort) => (account.sort === sort ? Promise.resolve() : persist('accounts', { ...account, sort }))),
+              );
+            }}
+          >
+            {(account) => (
+              <button type="button" className="op-main" onClick={() => onEdit(account)}>
+                <div className="ic" style={{ background: `${account.color}1A` }}>
+                  {account.icon}
+                </div>
+                <div className="txt">
+                  <b>{account.name}</b>
+                  <span>{kindLabel(account.kind)}</span>
+                </div>
+                <div className="sum">
+                  <MoneyAmount minor={balances.get(account.id) ?? 0} />
+                </div>
+              </button>
+            )}
+          </SortableList>
         </div>
 
         {archived.length > 0 && (

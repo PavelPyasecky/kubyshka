@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   elapsedDays,
-  formatMoney,
   monthKeyOf,
   monthName,
   monthNameIn,
@@ -19,6 +18,7 @@ import { byId, useAccounts, useCategories, useFamily, useTransactions } from '..
 import { openEntry, openTransaction } from '../../app/navigation.ts';
 import { sessionStore } from '../../state/session.ts';
 import { EmptyState } from '../../ui/EmptyState.tsx';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
 
 const RADIUS = 15.9;
 
@@ -28,11 +28,19 @@ const barShare = (part: number, whole: number): number => {
   return percent === 0 ? 2 : percent;
 };
 
-const deltaText = (current: number, previous: number, previousName: string): string => {
+const deltaNote = (current: number, previous: number, previousName: string) => {
   if (previous === 0) return 'в прошлом месяце не было';
   if (current === previous) return `как в ${previousName}`;
   const delta = current - previous;
-  return delta > 0 ? `на ${formatMoney(delta)} больше` : `на ${formatMoney(-delta)} меньше`;
+  return delta > 0 ? (
+    <>
+      на <MoneyAmount minor={delta} /> больше
+    </>
+  ) : (
+    <>
+      на <MoneyAmount minor={-delta} /> меньше
+    </>
+  );
 };
 
 export const AnalyticsScreen = () => {
@@ -96,15 +104,21 @@ export const AnalyticsScreen = () => {
           <div className="card totals">
             <div>
               <span className="caption">Пришло</span>
-              <strong style={{ color: 'var(--income)' }}>{formatMoney(snapshot.income)}</strong>
+              <strong style={{ color: 'var(--income)' }}>
+                <MoneyAmount minor={snapshot.income} />
+              </strong>
             </div>
             <div>
               <span className="caption">Ушло</span>
-              <strong>{formatMoney(snapshot.expense)}</strong>
+              <strong>
+                <MoneyAmount minor={snapshot.expense} />
+              </strong>
             </div>
             <div>
               <span className="caption">Разница</span>
-              <strong style={{ color: snapshot.saved >= 0 ? 'var(--income)' : 'var(--expense)' }}>{formatMoney(snapshot.saved)}</strong>
+              <strong style={{ color: snapshot.saved >= 0 ? 'var(--income)' : 'var(--expense)' }}>
+                <MoneyAmount minor={snapshot.saved} />
+              </strong>
             </div>
           </div>
 
@@ -140,7 +154,9 @@ export const AnalyticsScreen = () => {
                 </svg>
                 <div className="donut-center">
                   <span className="caption">Расходы</span>
-                  <b>{formatMoney(snapshot.expense)}</b>
+                  <b>
+                    <MoneyAmount minor={snapshot.expense} />
+                  </b>
                 </div>
               </div>
 
@@ -151,9 +167,11 @@ export const AnalyticsScreen = () => {
                       <i style={{ background: category?.color ?? '#8E8E93' }} />
                       {category?.name ?? 'Без категории'}
                     </div>
-                    <div className="val">{formatMoney(amount)}</div>
+                    <div className="val">
+                      <MoneyAmount minor={amount} />
+                    </div>
                     <div className="sub">
-                      {sharePercent(amount, snapshot.expense)}%, {deltaText(amount, previousAmount, monthNameIn(previous))}
+                      {sharePercent(amount, snapshot.expense)}%, {deltaNote(amount, previousAmount, monthNameIn(previous))}
                     </div>
                   </div>
                 ))}
@@ -192,7 +210,9 @@ export const AnalyticsScreen = () => {
                       <b>{category?.name ?? 'Без категории'}</b>
                       <span>{transaction.note || monthName(month)}</span>
                     </div>
-                    <div className="sum">−{formatMoney(transaction.amount)}</div>
+                    <div className="sum">
+                      <MoneyAmount minor={-transaction.amount} />
+                    </div>
                   </button>
                 );
               })}
@@ -207,7 +227,9 @@ export const AnalyticsScreen = () => {
               byMember.map(([memberId, amount]) => (
                 <div className="cat-row" key={memberId}>
                   <div className="name">{members.find((member) => member.id === memberId)?.name ?? 'Участник'}</div>
-                  <div className="val">{formatMoney(amount)}</div>
+                  <div className="val">
+                    <MoneyAmount minor={amount} />
+                  </div>
                   <div className="sub">{sharePercent(amount, snapshot.expense)}%</div>
                 </div>
               ))
@@ -222,7 +244,9 @@ export const AnalyticsScreen = () => {
               byAccount.map(([accountId, amount]) => (
                 <div className="cat-row" key={accountId}>
                   <div className="name">{accounts.get(accountId)?.name ?? 'Счёт'}</div>
-                  <div className="val">{formatMoney(amount)}</div>
+                  <div className="val">
+                    <MoneyAmount minor={amount} />
+                  </div>
                   <div className="sub">{sharePercent(amount, snapshot.expense)}%</div>
                 </div>
               ))
@@ -231,7 +255,7 @@ export const AnalyticsScreen = () => {
 
           {offset === 0 && snapshot.expense > 0 && (
             <p className="note" style={{ padding: '0 4px 12px' }}>
-              В среднем {formatMoney(perDay)} в день, к концу месяца около {formatMoney(snapshot.forecastExpense)}
+              В среднем <MoneyAmount minor={perDay} /> в день, к концу месяца около <MoneyAmount minor={snapshot.forecastExpense} />
             </p>
           )}
         </>

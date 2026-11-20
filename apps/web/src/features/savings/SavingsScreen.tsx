@@ -1,8 +1,6 @@
 import {
   accountBalances,
   averageSaved,
-  formatMoney,
-  formatSigned,
   fullestSpendingAccount,
   lastMonths,
   monthKeyOf,
@@ -19,6 +17,7 @@ import type { MonthKey } from '@kubyshka/shared';
 import { useAccounts, useFamily, useTransactions } from '../../data/hooks.ts';
 import { closeOverlay, openEntry } from '../../app/navigation.ts';
 import { EmptyState } from '../../ui/EmptyState.tsx';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
 
 const columnPercent = (value: number, span: number): number => {
   if (span <= 0 || value === 0) return 0;
@@ -121,10 +120,12 @@ export const SavingsScreen = () => {
 
         <div className="card">
           <span className="caption">В копилке</span>
-          <div className="amount-xl">{formatMoney(inPot)}</div>
+          <div className="amount-xl">
+            <MoneyAmount minor={inPot} />
+          </div>
           {movement.delta !== 0 && (
             <div className="delta" style={movement.delta < 0 ? { color: 'var(--expense)' } : undefined}>
-              {formatSigned(movement.delta)} в {monthNameIn(month)}
+              <MoneyAmount minor={movement.delta} signed /> в {monthNameIn(month)}
             </div>
           )}
         </div>
@@ -141,9 +142,13 @@ export const SavingsScreen = () => {
             <div className="card">
               <div className="row-between">
                 <span className="caption">Отложено в {monthNameIn(month)}</span>
-                <span className="caption">норма {formatMoney(snapshot.norm)}</span>
+                <span className="caption">
+                  норма <MoneyAmount minor={snapshot.norm} />
+                </span>
               </div>
-              <div className="amount-l">{formatMoney(snapshot.saved)}</div>
+              <div className="amount-l">
+                <MoneyAmount minor={snapshot.saved} />
+              </div>
               <div className="track">
                 <b
                   style={{
@@ -153,7 +158,9 @@ export const SavingsScreen = () => {
                 />
               </div>
               <div className="row-between">
-                <span className="caption">К концу месяца {formatMoney(snapshot.forecastSaved)}</span>
+                <span className="caption">
+                  К концу месяца <MoneyAmount minor={snapshot.forecastSaved} />
+                </span>
                 <span className="caption" style={{ color: onTrack ? 'var(--accent)' : 'var(--warn)' }}>
                   {Math.round(snapshot.normProgress * 100)}% нормы
                 </span>
@@ -164,9 +171,13 @@ export const SavingsScreen = () => {
               <span className="caption">Сколько откладывали</span>
               <HistoryChart months={months} values={values} norm={snapshot.norm} plannedIndex={months.length - 1} />
               <p className="note">
-                {average > 0
-                  ? `В среднем за три месяца ${formatMoney(average)}, это ${average >= snapshot.norm ? 'не ниже' : 'ниже'} нормы`
-                  : 'История появится через пару месяцев'}
+                {average > 0 ? (
+                  <>
+                    В среднем за три месяца <MoneyAmount minor={average} />, это {average >= snapshot.norm ? 'не ниже' : 'ниже'} нормы
+                  </>
+                ) : (
+                  'История появится через пару месяцев'
+                )}
                 {negative ? '. Столбец вниз — потратили больше, чем получили' : ''}
               </p>
             </div>
@@ -175,7 +186,9 @@ export const SavingsScreen = () => {
               <div className="row-between" style={{ alignItems: 'center' }}>
                 <div>
                   <span className="caption">Переведено в копилку</span>
-                  <div className="amount-m">{formatMoney(movement.transferred)}</div>
+                  <div className="amount-m">
+                    <MoneyAmount minor={movement.transferred} />
+                  </div>
                 </div>
                 <button type="button" className="pill" onClick={transfer} disabled={!pot}>
                   Перевести
@@ -185,7 +198,7 @@ export const SavingsScreen = () => {
                 {!pot
                   ? 'Добавьте накопительный счёт в разделе счетов, и перевод встанет в него'
                   : gap > 0
-                    ? `Остальные ${formatMoney(gap)} пока лежат на картах`
+                    ? <>Остальные <MoneyAmount minor={gap} /> пока лежат на картах</>
                     : 'Всё отложенное в этом месяце уже в копилке'}
               </p>
             </div>

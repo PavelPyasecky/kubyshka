@@ -1,6 +1,6 @@
-import { formatMoney } from '@kubyshka/shared';
 import type { Account, Category, Transaction } from '@kubyshka/shared';
 import type { Member } from '../../state/session.ts';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
 
 type Props = {
   transaction: Transaction;
@@ -19,7 +19,7 @@ export const TransactionRow = ({ transaction, categories, accounts, members, onS
   const title = counter ? `В ${counter.name.toLowerCase()}` : (category?.name ?? 'Без категории');
   const subtitle = [account?.name, member?.name].filter(Boolean).join(', ');
   const income = transaction.flow === 'income';
-  const sign = income ? '+' : transaction.flow === 'expense' ? '−' : '';
+  const shown = transaction.flow === 'expense' ? -transaction.amount : transaction.amount;
 
   return (
     <button type="button" className="op" onClick={() => onSelect?.(transaction)}>
@@ -31,8 +31,7 @@ export const TransactionRow = ({ transaction, categories, accounts, members, onS
         <span>{subtitle}</span>
       </div>
       <div className={`sum${income ? ' in' : ''}`} style={counter ? { color: 'var(--label-2)' } : undefined}>
-        {sign}
-        {formatMoney(transaction.amount)}
+        <MoneyAmount minor={shown} signed={income} />
       </div>
     </button>
   );

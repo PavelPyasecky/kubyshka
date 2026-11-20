@@ -1,4 +1,4 @@
-import { formatMoney } from '@kubyshka/shared';
+import { MoneyAmount } from '../../ui/CurrencySign.tsx';
 import { byId, useAccounts, useCategories, useTransactions } from '../../data/hooks.ts';
 import { persist, softDelete } from '../../db/repo.ts';
 import { closeOverlay, openEntry } from '../../app/navigation.ts';
@@ -19,7 +19,7 @@ export const TransactionSheet = ({ id, onRemoved }: { id: string; onRemoved: (te
   const counter = transaction.counterAccountId ? accounts.get(transaction.counterAccountId) : undefined;
   const member = state.status === 'ready' ? state.members.find((item) => item.id === transaction.memberId) : undefined;
   const income = transaction.flow === 'income';
-  const sign = income ? '+' : transaction.flow === 'expense' ? '−' : '';
+  const shown = transaction.flow === 'expense' ? -transaction.amount : transaction.amount;
   const title = counter ? `${account?.name ?? 'Счёт'} → ${counter.name}` : (category?.name ?? 'Без категории');
 
   const edit = () =>
@@ -52,8 +52,7 @@ export const TransactionSheet = ({ id, onRemoved }: { id: string; onRemoved: (te
         <div className="grabber" />
         <div className="detail-amount">
           <div className={`value${income ? ' in' : ''}`} style={counter ? { color: 'var(--label)' } : undefined}>
-            {sign}
-            {formatMoney(transaction.amount)}
+            <MoneyAmount minor={shown} signed={income} />
           </div>
           <div className="what">
             {counter ? '⇄' : (category?.icon ?? '•')} {title}
